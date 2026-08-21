@@ -309,6 +309,30 @@
     #recipe-wrap{flex-direction:column;align-items:center;gap:1.2vmin;}
     #recipe-need,#recipe-order,#recipe-center{flex:0 0 auto;width:100%;max-width:640px;}
     #recipe-center{order:-1;} #recipe-need .needrow{flex-direction:row;flex-wrap:wrap;justify-content:center;} }
+  /* 교사용 새 요리 편집기 */
+  #s-edit{justify-content:flex-start;padding-top:20vmin;overflow-y:auto;}
+  #editbody{width:min(92vw,940px);margin:0 auto;padding-bottom:8vmin;}
+  .edcard{background:#fff;border-radius:2.4vmin;box-shadow:0 .6vmin 2vmin rgba(0,0,0,.08);padding:2.4vmin 3vmin;margin:0 0 2.4vmin;}
+  .edtitle{font-weight:900;font-size:clamp(15px,2.8vmin,30px);margin-bottom:1.4vmin;}
+  .edtitle small{font-weight:700;opacity:.55;font-size:.75em;}
+  .edrow{display:flex;flex-wrap:wrap;gap:1.2vmin;align-items:center;}
+  .edchip{display:flex;align-items:center;gap:.8vmin;padding:1vmin 1.6vmin;border-radius:1.6vmin;border:.35vmin solid #ddd;
+    background:#fafafa;cursor:pointer;font-weight:800;font-size:clamp(13px,2.4vmin,26px);user-select:none;}
+  .edchip:active{transform:scale(.96);}
+  .edchip.sel{border-color:#4a9f7f;background:#eaf6f0;}
+  #ed-nm{width:100%;box-sizing:border-box;font:inherit;font-weight:800;font-size:clamp(16px,3vmin,32px);
+    padding:1.2vmin 1.6vmin;border:.4vmin solid #ddd;border-radius:1.6vmin;}
+  .edin{box-sizing:border-box;font:inherit;font-weight:800;font-size:clamp(14px,2.6vmin,28px);
+    padding:1vmin 1.4vmin;border:.4vmin solid #ddd;border-radius:1.4vmin;}
+  .big-btn.sm{font-size:clamp(14px,2.6vmin,26px);padding:1.2vmin 2.6vmin;box-shadow:0 .7vmin 0 rgba(0,0,0,.15);}
+  .ednote{background:#fff6e8;border:.35vmin solid #eccb96;border-radius:1.4vmin;padding:1.4vmin 1.8vmin;margin-top:1.2vmin;
+    font-size:clamp(13px,2.2vmin,24px);font-weight:700;line-height:1.5;}
+  .ednote textarea{width:100%;box-sizing:border-box;font:inherit;font-weight:600;font-size:.92em;margin-top:.8vmin;
+    border:.3vmin solid #ddd;border-radius:1vmin;padding:1vmin;background:#fff;}
+  .edthumb{width:9vmin;height:9vmin;object-fit:cover;border-radius:1.4vmin;border:.35vmin solid #ddd;vertical-align:middle;}
+  .dish.custom{position:relative;border:.55vmin dashed #e08c3c;}
+  .dish .delbadge{position:absolute;right:.8vmin;top:.8vmin;font-size:3.4vmin;line-height:1;background:#fff;
+    border-radius:50%;padding:.7vmin;box-shadow:0 .3vmin 1vmin rgba(0,0,0,.22);z-index:3;cursor:pointer;}
 </style>
 </head>
 <body>
@@ -338,6 +362,10 @@
   <section class="screen" id="s-select">
     <button class="speak" data-say="오늘은 무엇을 만들까요? 요리를 골라요." style="position:absolute;top:9.5vmin;right:3vmin;">🔊</button>
     <div id="grid"></div>
+  </section>
+
+  <section class="screen" id="s-edit">
+    <div id="editbody"></div>
   </section>
 
   <section class="screen" id="s-cart">
@@ -690,7 +718,7 @@ DISHES[0].done=()=>platedDone(IMG.heroCut?`<img src="${IMG.heroCut}" style="max-
       <div style="position:absolute;left:46%;top:10%;">${lumpHTML("yogurt")}</div>
       <div style="position:absolute;left:62%;top:22%;">${lumpHTML("yogurt")}</div></div>`; })();
 (function(){ const j=DISHES.find(d=>d.id==="juice"); j.steps=JUICE_STEPS;
-  j.done=()=>{const k=IMG.jBlenderJuice||IMG.jGlass; return k?`<img src="${k}" style="width:54%;max-width:320px;display:block;margin:0 auto;">`:`<div class="cardemoji" style="font-size:clamp(120px,30vmin,320px);">🥤</div>`;}; })();
+  j.done=()=>{const k=IMG.jGlass||IMG.jBlenderJuice; return k?`<img src="${k}" style="width:54%;max-width:320px;display:block;margin:0 auto;">`:`<div class="cardemoji" style="font-size:clamp(120px,30vmin,320px);">🥤</div>`;}; })();  // 마지막이 '컵에 따르기'라 완성은 유리컵 우선
 function pcard(k,emoji){ const ks=Array.isArray(k)?k:[k]; return ()=>{ const f=ks.find(x=>IMG[x]); return f?`<img src="${IMG[f]}" class="gimg">`:`<div class="cardemoji">${emoji}</div>`; }; }
 const PANCAKE_STEPS=[
   {id:1,label:"바나나 까기",text:"바나나를 까요",say:"아래로 쓸어 바나나 껍질을 까요",praise:"잘했어요",build:w=>buildPeel(w,"pcBanana","pcPeeled"),card:pcard("pcBanana","👇🍌")},
@@ -717,7 +745,7 @@ const HWACHAE_STEPS=[
   {id:2,label:"썰기",text:"과일을 썰어요",say:"칼로 과일을 작게 썰어요",praise:"좋아요",build:w=>buildCutBoard(w,{content:fruitCluster("11vmin"),sliced:slicedCluster("11vmin"),hint:"🔪 과일을 썰어요"}),card:pcard([],"🔪🍉")},
   {id:3,label:"담기",text:"그릇에 담아요",say:"썬 과일을 그릇에 담아요",praise:"잘했어요",build:buildSaladFill,card:pcard("saladPlate","🥣")},
   {id:4,label:"붓기",text:"사이다를 부어요",say:"사이다를 기울여 그릇에 부어요",praise:"좋아요",build:w=>buildPour(w, IMG.cider?"cider":"🥤", IMG.hwachaeBowl?"hwachaeBowl":"🍹"),card:pcard([],"🥤")},
-  {id:5,label:"섞기",text:"골고루 섞어요",say:"숟가락으로 골고루 저어요",praise:"완성",build:w=>buildStir(w, IMG.hwachaeBowl?"hwachaeBowl":"🍹", "🥄"),card:pcard([],"🔄🍉")},
+  {id:5,label:"섞기",text:"골고루 섞어요",say:"숟가락으로 골고루 저어요",praise:"완성",build:w=>buildStir(w, IMG.hwachaeBowl?"hwachaeBowl":"🍹", IMG.spoon?"spoon":"🥄", null, false, 45),card:pcard(["spoon"],"🔄🍉")},  // 샐러드와 동일한 나무숟가락+손
 ];
 (function(){ const d=DISHES.find(x=>x.id==="hwachae"); d.ready=true; d.freeChoice=true; d.need=JUICE_FRUITS.slice(); d.steps=HWACHAE_STEPS;
   d.done=()=>`<div style="position:relative;width:100%;max-width:460px;margin:0 auto;">
@@ -774,8 +802,8 @@ const PIZZA_STEPS=[
 
 /* 컵케이크: 반죽 젓기→컵에 붓기→굽기→크림 짜기→토핑 뿌리기 (need=밀가루·달걀·우유) */
 const CUPCAKE_STEPS=[
-  {id:1,label:"반죽 젓기",text:"반죽을 저어요",say:"거품기로 빙글빙글 반죽을 저어요",praise:"잘했어요",build:w=>buildStir(w, IMG.cupBatter?"cupBatter":"🥣", "🥄"),card:pcard([],"🔄🥣")},
-  {id:2,label:"붓기",text:"컵에 부어요",say:"반죽을 기울여 컵에 부어요",praise:"좋아요",build:w=>buildPour(w, IMG.cupBatter?"cupBatter":"🥣", IMG.cupEmpty?"cupEmpty":"🧁"),card:pcard([],"↻🧁")},
+  {id:1,label:"반죽 젓기",text:"반죽을 저어요",say:"거품기로 빙글빙글 반죽을 저어요",praise:"잘했어요",build:w=>{const to=IMG.pcSmooth?"pcSmooth":"pcMix"; return (IMG.pcRaw&&IMG[to])?buildStir(w,to,"pcWhisk","pcRaw",!IMG.pcSmooth):buildStir(w, IMG.cupBatter?"cupBatter":"🥣", IMG.spoon?"spoon":"🥄", null, false, 45);},card:pcard(["pcMix","cupBatter"],"🔄🥣")},  // 팬케이크와 동일한 그릇·거품기·손(일관성)
+  {id:2,label:"붓기",text:"컵에 부어요",say:"반죽 그릇을 기울여 컵에 부어요",praise:"좋아요",build:w=>buildPour(w, IMG.pcJug?"pcJug":(IMG.cupBatter?"cupBatter":"🥣"), IMG.cupEmpty?"cupEmpty":"🧁", {r:"-8%",t:"0%",deg:20,flip:1,big:1}),card:pcard(["pcJug"],"↻🧁")},  // 거품기 없는 반죽 저그 + 손잡이 쥔 손(팬케이크와 동일)
   {id:3,label:"굽기",text:"오븐에 구워요",say:"단추를 꾹 눌러 노릇하게 구워요",praise:"잘했어요",build:w=>buildBake(w,{fromEmoji:"🧁",toImg:(IMG.cupBaked?"cupBaked":null),toEmoji:"🧁",hint:"🔥 꾹 눌러 구워요"}),card:pcard([],"🔥🧁")},
   {id:4,label:"크림 짜기",text:"크림을 짜요",say:"크림을 빙글빙글 짜서 올려요",praise:"좋아요",build:w=>buildSqueeze(w,{bottleEmoji:"🌀",foodEmoji:"🧁",foodImg:(IMG.cupBaked?"cupBaked":null),pumps:4,color:"#f7c9d8",hint:"⬇️ 크림을 짜요"}),card:pcard([],"🌀🧁")},
   {id:5,label:"뿌리기",text:"토핑을 뿌려요",say:"스프링클을 흔들어 뿌려요",praise:"완성",build:w=>buildShake(w,{content:`<div class="cardemoji" style="font-size:15vmin;">🧁</div>`,need:6,hint:"✨↔️ 흔들어 토핑을 뿌려요"}),card:pcard([],"✨🧁")},
@@ -792,10 +820,227 @@ const CANAPE_STEPS=[
 (function(){ const d=DISHES.find(x=>x.id==="canape"); d.ready=true; d.need=["cheese","tomato"]; d.steps=CANAPE_STEPS;
   d.done=()=> IMG.canapeDone?platedDone(`<img src="${IMG.canapeDone}" style="max-width:80%;max-height:100%;object-fit:contain;">`):`<div class="cardemoji" style="font-size:clamp(120px,30vmin,320px);">🫓🍅</div>`; })();
 
+/* ===== 모든 요리 공통 마지막 단계: 완성 요리를 접시에 담기 (주스만 컵에 따르기) ===== */
+function addServeStep(steps, foodFn, cardKeys, emoji){
+  steps.push({id:steps.length+1,label:"담기",text:"접시에 담아요",say:"완성한 요리를 접시에 옮겨 담아요",praise:"참 잘했어요",
+    build:w=>buildServe(w, foodFn()), card:pcard(cardKeys||[], emoji||"🍽️")});
+}
+addServeStep(SANDWICH_STEPS, ()=>IMG.heroCut?"heroCut":"hero", ["heroCut","hero"], "🥪");
+JUICE_STEPS.push({id:JUICE_STEPS.length+1,label:"따르기",text:"컵에 따라요",say:"주스를 기울여 컵에 따라요",praise:"참 잘했어요",
+  build:w=>buildPour(w, IMG.jBlenderJuice?"jBlenderJuice":"🥤", IMG.jGlass?"jGlass":"🥛"), card:pcard(["jGlass"],"🥤")});
+addServeStep(PANCAKE_STEPS, ()=>IMG.pcPancake?"pcPancake":"🥞", ["pcPancake"], "🥞");
+addServeStep(SALAD_STEPS, ()=>IMG.saladDone?"saladDone":saladBowlHTML(), ["saladDone"], "🥗");
+addServeStep(HWACHAE_STEPS, ()=>IMG.hwachaeBowl?"hwachaeBowl":"🍹", ["hwachaeBowl"], "🍹");
+addServeStep(YOGURTBOWL_STEPS, ()=>saladBowlHTML(), ["saladPlate"], "🥣");   // 완성 그릇째 옮겨 담기
+addServeStep(RICEBALL_STEPS, ()=>IMG.riceball?"riceball":"🍙", ["riceball"], "🍙");
+addServeStep(HOTDOG_STEPS, ()=>IMG.hotdog?"hotdog":"🌭", ["hotdog"], "🌭");
+addServeStep(PIZZA_STEPS, ()=>IMG.pizzaDone?"pizzaDone":"🍕", ["pizzaDone"], "🍕");
+addServeStep(CUPCAKE_STEPS, ()=>IMG.cupDone?"cupDone":(IMG.cupBaked?"cupBaked":"🧁"), ["cupDone","cupBaked"], "🧁");
+addServeStep(CANAPE_STEPS, ()=>IMG.canapeDone?"canapeDone":"🫓", ["canapeDone"], "🫓");
+
+/* ===== 교사용 '새 요리 만들기' 편집기 — 선택 화면 ➕에서 진입, localStorage 저장 =====
+   과정은 기존 제스처 툴킷 14종을 조합. 마지막 '접시에 담기'는 자동으로 붙음.
+   ponytail: 순서 재배열은 삭제 후 다시 추가로 대신함(드래그 정렬은 필요해지면) */
+const CUSTOM_KEY="cookrun_custom";
+const CUSTOM_EMOJI=["🍽️","🍜","🥗","🍙","🍕","🧁","🍪","🥪","🍹","🍰","🌮","🥧"];
+const CUSTOM_ACTS={
+  wash:{nm:"씻기",ic:"🚿",text:"재료를 씻어요",say:"물에 재료를 깨끗이 씻어요",mk:d=>w=>buildWashFruit(w)},
+  peel:{nm:"까기",ic:"🍌",text:"껍질을 까요",say:"아래로 쓸어 껍질을 까요",mk:d=>w=>{const k=(chosen[0]&&IMG[chosen[0]])?chosen[0]:"🍌"; buildPeel(w,k,(typeof k==="string"&&IMG[k+"_s"])?k+"_s":null);}},
+  cut:{nm:"썰기",ic:"🔪",text:"재료를 썰어요",say:"칼로 재료를 썰어요",mk:d=>w=>buildCutBoard(w,{content:fruitCluster("11vmin"),sliced:slicedCluster("11vmin"),hint:"🔪 재료를 썰어요"})},
+  fill:{nm:"그릇에 담기",ic:"🥣",text:"그릇에 담아요",say:"재료를 그릇에 담아요",mk:d=>w=>buildSaladFill(w)},
+  scoop:{nm:"뜨기",ic:"🥄",text:"떠서 담아요",say:"숟가락으로 떠서 그릇에 담아요",mk:d=>w=>buildScoop(w,{srcEmoji:"🍚",bowlEmoji:"🥣",scoops:3,hint:"🥄 떠서 담아요"})},
+  stir:{nm:"젓기",ic:"🔄",text:"골고루 저어요",say:"숟가락으로 골고루 저어요",mk:d=>w=>buildStir(w, saladBowlHTML(), IMG.spoon?"spoon":"🥄", null, false, 45)},
+  pour:{nm:"붓기",ic:"🫗",text:"부어요",say:"기울여서 부어요",mk:d=>w=>buildPour(w,"🥛",d.e)},
+  rub:{nm:"바르기",ic:"🧈",text:"골고루 발라요",say:"골고루 문질러 발라요",mk:d=>w=>rubMix(w,`<div class="cardemoji" style="font-size:20vmin;">${d.e}</div>`,`<div style="position:absolute;inset:22% 20%;border-radius:20%;background:radial-gradient(circle,rgba(255,250,230,.9),rgba(255,250,230,.4) 70%);"></div>`,"👆↔️ 골고루 발라요")},
+  squeeze:{nm:"짜기",ic:"🥫",text:"소스를 짜요",say:"꾹꾹 눌러 소스를 짜요",mk:d=>w=>buildSqueeze(w,{bottleEmoji:"🥫",foodEmoji:d.e,pumps:4,hint:"👆 꾹꾹 눌러 짜요"})},
+  shake:{nm:"뿌리기",ic:"✨",text:"흔들어 뿌려요",say:"좌우로 흔들어 뿌려요",mk:d=>w=>buildShake(w,{content:`<div class="cardemoji" style="font-size:15vmin;">${d.e}</div>`,need:6,hint:"✨↔️ 흔들어 뿌려요"})},
+  knead:{nm:"뭉치기",ic:"👐",text:"꾹꾹 뭉쳐요",say:"손으로 꾹꾹 눌러 뭉쳐요",mk:d=>w=>buildKnead(w,{fromEmoji:"🍚",toEmoji:d.e,taps:5,hint:"👐 꾹꾹 눌러요"})},
+  bake:{nm:"굽기",ic:"🔥",text:"구워요",say:"단추를 꾹 눌러 구워요",mk:d=>w=>buildBake(w,{fromEmoji:d.e,toEmoji:d.e,hint:"🔥 꾹 눌러 구워요"})},
+  oven:{nm:"오븐",ic:"⏲️",text:"오븐에 구워요",say:"오븐에 넣고 구워요",mk:d=>w=>buildOven(w,{foodHTML:`<div class="cardemoji" style="font-size:18vmin;text-align:center;">${d.e}</div>`})},
+  flip:{nm:"뒤집기",ic:"⤴️",text:"뒤집어요",say:"위로 휙 뒤집어요",mk:d=>w=>buildFlip(w, IMG.pcPan?"pcPan":"🍳", d.e)},
+};
+function customLoad(){ try{return JSON.parse(localStorage.getItem(CUSTOM_KEY)||"[]");}catch(_){return [];} }
+function customSave(arr){ try{localStorage.setItem(CUSTOM_KEY,JSON.stringify(arr));}catch(_){ say("저장 공간이 가득 찼어요. 사진을 줄이거나 요리를 지워 주세요."); } }
+/* 문장 → 액션 자동 매칭(앞에 있는 규칙 우선) */
+const ACT_MATCH=[[/씻/,"wash"],[/오븐/,"oven"],[/(썰|자르|잘라)/,"cut"],[/(저어|젓|섞)/,"stir"],[/(부어|붓|따라|따르)/,"pour"],
+  [/짜/,"squeeze"],[/(뿌리|뿌려)/,"shake"],[/흔들/,"shake"],[/(떠서|떠요|뜨)/,"scoop"],[/(뭉치|뭉쳐|주먹)/,"knead"],
+  [/(구워|굽)/,"bake"],[/뒤집/,"flip"],[/(껍질|까요|까서)/,"peel"],[/(발라|바르)/,"rub"],[/(올려|올리|담아|담)/,"fill"]];
+function matchAct(t){ for(const p of ACT_MATCH) if(p[0].test(t)) return p[1]; return null; }
+/* 사진 첨부 → 축소 dataURL(localStorage 용량 보호) */
+function fileToData(file, maxd, cb){ const rd=new FileReader();
+  rd.onload=()=>{ const im=new Image(); im.onload=()=>{ const s=Math.min(1,maxd/Math.max(im.width,im.height));
+      const c=document.createElement("canvas"); c.width=Math.max(1,Math.round(im.width*s)); c.height=Math.max(1,Math.round(im.height*s));
+      c.getContext("2d").drawImage(im,0,0,c.width,c.height);
+      cb(c.toDataURL(file.type==="image/png"?"image/png":"image/jpeg",.85)); }; im.src=rd.result; };
+  rd.readAsDataURL(file); }
+/* 그림 생성 프롬프트(필요이미지_생성프롬프트.md 규칙과 동일 스타일) */
+function imgPrompt(nm){ return "순백색 배경(#ffffff)에 "+nm+" 하나만 화면 정중앙에 크게 그려 주세요. 납작한 2D 어린이 그림책 일러스트, 부드러운 진갈색 외곽선, 잔잔한 셀 셰이딩, 따뜻하고 귀여운 톤. 바닥 그림자·반사·글자·워터마크·손 없음."; }
+function makeCustomDish(c,idx){
+  const d={id:"custom"+idx,nm:c.nm,e:c.e||"🍽️",ready:true,custom:true,img:c.img||null,scale:c.scale||1};
+  d.need=(c.need||[]).map((n,j)=>{ if(typeof n==="string") return n;   // 목록 재료는 키, 직접 추가 재료는 PANTRY에 임시 등록
+    const key="cust"+idx+"_"+j;
+    PANTRY[key]={nm:n.nm,e:n.e||"🥘",custom:true};
+    if(n.img){ IMG[key]=n.img; PANTRY[key].img=key; }
+    return key; });
+  d.sizes={}; d.need.forEach((k,j)=>{ const m=c.sizes&&c.sizes[j]; if(m&&m!==1)d.sizes[k]=m; });   // 재료별 크기(저장은 need 순번, 적용은 키)
+  const acts=(c.acts||[]).map(a=>typeof a==="string"?{a:a}:a).filter(a=>a.a==="show"||CUSTOM_ACTS[a.a]);
+  d.steps=acts.map((a,j)=>{
+    if(a.a==="show") return {id:j+1,label:"따라하기",text:a.text||"선생님을 보고 따라해요",say:a.text||"선생님을 보고 따라해요",praise:"잘했어요",
+      build:w=>buildShow(w,a.img,a.text),card:()=>a.img?`<img src="${a.img}" class="gimg" style="border-radius:1.5vmin;">`:`<div class="cardemoji">🧑‍🍳</div>`};
+    const A=CUSTOM_ACTS[a.a];
+    return {id:j+1,label:A.nm,text:a.text||A.text,say:a.text||A.say,praise:"잘했어요",build:A.mk(d),card:()=>`<div class="cardemoji">${A.ic}</div>`}; });
+  const foodHTML=()=> d.img?`<img src="${d.img}" style="width:100%;height:100%;object-fit:contain;border-radius:2vmin;">`:`<div class="cardemoji" style="font-size:16vmin;">${d.e}</div>`;
+  addServeStep(d.steps, foodHTML, [], d.e);
+  d.done=()=> d.img?`<img src="${d.img}" style="max-width:100%;max-height:56vmin;display:block;margin:0 auto;border-radius:2.4vmin;">`:`<div class="cardemoji" style="font-size:clamp(120px,30vmin,320px);">${d.e}</div>`;
+  return d;
+}
+function loadCustomDishes(){
+  Object.keys(PANTRY).forEach(k=>{ if(PANTRY[k].custom){ delete PANTRY[k]; delete IMG[k]; } });   // 임시 재료 재등록
+  for(let i=DISHES.length-1;i>=0;i--) if(DISHES[i].custom) DISHES.splice(i,1);
+  customLoad().forEach((c,i)=>DISHES.push(makeCustomDish(c,i)));
+}
+loadCustomDishes();
+
+let ED=null, EDI=null, EDS="", PEND=null, PROMPT={dish:false,ing:false}, EDIDX=null, PVIDX=0, EDTGT=-1, PVT=null;
+function showEditor(prefill, editIdx){
+  const p=prefill||{};
+  ED={nm:p.nm||"",e:p.e||"🍽️",img:p.img||null,scale:p.scale||1,sizes:Object.assign({},p.sizes||{}),
+      need:(p.need||[]).map(n=>typeof n==="string"?n:{nm:n.nm,e:n.e||"",img:n.img||null}),
+      acts:(p.acts||[]).map(a=>typeof a==="string"?{a:a}:{a:a.a,text:a.text,img:a.img})};   // need: PANTRY키 | {nm,e,img}  acts: {a,text,img}  sizes: {need순번:배수}
+  EDIDX=(editIdx==null)?null:editIdx; PVIDX=0; EDTGT=-1;
+  EDI={nm:"",e:"",img:null}; EDS=""; PEND=null; PROMPT={dish:false,ing:false};
+  document.getElementById("band").classList.add("hide"); setHead(EDIDX!=null?"요리 고치기":"새 요리 만들기");
+  show("s-edit"); renderEditor();
+  say(EDIDX!=null?"요리를 고쳐요.":(prefill?"복제한 요리예요. 고쳐서 저장해요.":"새 요리를 만들어요. 이름을 적고, 재료와 만드는 순서를 정해요."));
+}
+/* 미리보기 — 지금 편집 중인 내용을 임시 요리로 만들어 단계 하나를 실제로 렌더(조작 가능, 진행은 안 됨) */
+function edPreview(){
+  const pv=document.getElementById("ed-pv"); if(!pv)return;
+  const temp=makeCustomDish({nm:ED.nm||"미리보기",e:ED.e,img:ED.img,need:ED.need,acts:ED.acts,scale:1,sizes:ED.sizes},999);
+  currentDish=temp;   // fsz()가 재료별 크기를 읽도록
+  const steps=temp.steps;
+  const chips=document.getElementById("ed-pvsteps");
+  if(chips)chips.innerHTML=steps.map((s,i)=>`<div class="edchip ${i===PVIDX?'sel':''}" data-pv="${i}">${s.label}</div>`).join("");
+  if(chips)chips.querySelectorAll("[data-pv]").forEach(el=>el.onclick=()=>{PVIDX=+el.dataset.pv;SND.pop();edPreview();});
+  PVIDX=Math.min(PVIDX,steps.length-1);
+  chosen=temp.need.slice();   // 빌더들이 재료를 읽도록
+  pv.innerHTML=`<div id="ed-pvin" style="position:absolute;inset:0;transform:scale(${ED.scale});transform-origin:50% 30%;"></div>`;
+  try{ steps[PVIDX].build(pv.firstElementChild); }catch(e){ pv.innerHTML=`<div style="padding:3vmin;">미리보기 오류: ${e.message}</div>`; }
+}
+function needChip(n,i){ if(typeof n==="string"){const p=PANTRY[n];return `<div class="edchip sel" data-ni="${i}"><span style="font-size:4.2vmin;">${p?p.e:"🥘"}</span><span>${p?p.nm:n}</span> ✕</div>`;}
+  return `<div class="edchip sel" data-ni="${i}">${n.img?`<img class="edthumb" style="width:5vmin;height:5vmin;" src="${n.img}">`:`<span style="font-size:4.2vmin;">${n.e||"🥘"}</span>`}<span>${n.nm}</span> ✕</div>`; }
+function seqChip(a,i){ const t=a.text?(a.text.length>14?a.text.slice(0,14)+"…":a.text):"";
+  if(a.a==="show") return `<div class="edchip sel" data-i="${i}">${i+1}. ${a.img?`<img class="edthumb" style="width:5vmin;height:5vmin;" src="${a.img}">`:"🧑‍🍳"} ${t||"따라하기"} ✕</div>`;
+  const A=CUSTOM_ACTS[a.a]; return `<div class="edchip sel" data-i="${i}">${i+1}. ${A.ic} ${t||A.nm} ✕</div>`; }
+function renderEditor(){
+  const b=document.getElementById("editbody");
+  b.innerHTML=`
+   <div class="edcard"><div class="edtitle">1. 요리 이름과 완성 모습</div>
+     <input id="ed-nm" type="text" placeholder="예: 과일 꼬치">
+     <div class="edrow" style="margin-top:2vmin;">
+       ${ED.img?`<img class="edthumb" src="${ED.img}"><div class="edchip" id="ed-imgdel">사진 빼기 ✕</div>`
+               :CUSTOM_EMOJI.map(e=>`<div class="edchip ${ED.e===e?'sel':''}" data-e="${e}" style="font-size:5vmin;">${e}</div>`).join("")}
+       <label class="edchip">📷 완성 사진 첨부<input id="ed-img" type="file" accept="image/*" hidden></label>
+       <div class="edchip" id="ed-pdish">🎨 그림 프롬프트</div></div>
+     ${PROMPT.dish?`<div class="ednote">아래 프롬프트를 이미지 생성기(ChatGPT 등)에 붙여넣어 그림을 만들고, 저장한 파일을 <b>📷 완성 사진 첨부</b>로 올리세요.<textarea rows="3" readonly onclick="this.select()">${imgPrompt((ED.nm||"완성된 요리")+" 완성 모습")}</textarea></div>`:""}</div>
+   <div class="edcard"><div class="edtitle">2. 재료 고르기 <small>(${ED.need.length}개)</small></div>
+     <div class="edrow">${Object.keys(PANTRY).filter(k=>!PANTRY[k].custom).map(k=>{const p=PANTRY[k];
+       return `<div class="edchip ${ED.need.includes(k)?'sel':''}" data-k="${k}"><span style="font-size:4.2vmin;">${p.e}</span><span>${p.nm}</span></div>`;}).join("")}</div>
+     <div class="edtitle" style="margin-top:2.4vmin;">목록에 없는 재료 직접 추가</div>
+     <div class="edrow">
+       <input id="ed-ingnm" class="edin" placeholder="재료 이름" style="flex:1;min-width:22vmin;">
+       <input id="ed-inge" class="edin" placeholder="이모지" maxlength="4" style="width:13vmin;text-align:center;">
+       <label class="edchip">📷 사진${EDI.img?" ✓":""}<input id="ed-ingimg" type="file" accept="image/*" hidden></label>
+       <button class="big-btn sm" id="ed-adding">재료 추가</button>
+       <div class="edchip" id="ed-ping">🎨 그림 프롬프트</div></div>
+     ${PROMPT.ing?`<div class="ednote">이모지도 사진도 없으면 🥘로 나와요. 아래 프롬프트로 그림을 만들어 <b>📷 사진</b>으로 붙이면 예뻐요.<textarea rows="3" readonly onclick="this.select()">${imgPrompt(EDI.nm||"재료")}</textarea></div>`:""}
+     <div class="edrow" style="margin-top:1.6vmin;" id="ed-needsel">${ED.need.length?ED.need.map(needChip).join(""):`<span style="opacity:.5;">고른 재료가 여기에 나와요</span>`}</div></div>
+   <div class="edcard"><div class="edtitle">3. 만드는 순서 <small>문장을 적으면 동작을 자동으로 알아채요</small></div>
+     <div class="edrow">
+       <input id="ed-step" class="edin" placeholder="예: 과일을 깨끗이 씻어요" style="flex:1;min-width:40vmin;">
+       <button class="big-btn sm" id="ed-addstep">과정 추가</button></div>
+     ${PEND?`<div class="ednote">"${PEND.text}" — 이 문장과 맞는 동작이 아직 없어요.<br>사진을 첨부하면 <b>보고 따라하기</b> 단계로 들어가요(사진 없이도 추가할 수 있어요).
+       <div class="edrow" style="margin-top:1vmin;">
+         <label class="edchip">📷 사진 첨부해 추가<input id="ed-pendimg" type="file" accept="image/*" hidden></label>
+         <div class="edchip" id="ed-pendplain">사진 없이 추가</div>
+         <div class="edchip" id="ed-pendcancel">취소</div></div></div>`:""}
+     <div class="edrow" style="margin-top:1.6vmin;">${Object.keys(CUSTOM_ACTS).map(a=>{const A=CUSTOM_ACTS[a];
+       return `<div class="edchip" data-a="${a}"><span style="font-size:4.2vmin;">${A.ic}</span><span>${A.nm}</span></div>`;}).join("")}</div>
+     <div class="edtitle" style="margin-top:2.4vmin;">순서 <small>누르면 빠져요 · 마지막 '접시에 담기'는 자동</small></div>
+     <div class="edrow" id="ed-seq">${ED.acts.length?ED.acts.map(seqChip).join(""):`<span style="opacity:.5;">아직 없어요</span>`}</div></div>
+   ${ED.acts.length?`<div class="edcard"><div class="edtitle">4. 크기 조절 · 미리보기 <small>단계를 골라 직접 만져 보며 조절해요</small></div>
+     <div class="edrow" id="ed-pvsteps"></div>
+     <div class="edtitle" style="margin-top:2vmin;">크기 조절 대상 <small>재료를 눌러 고르고 아래 슬라이더로</small></div>
+     <div class="edrow">
+       <div class="edchip ${EDTGT===-1?'sel':''}" data-tg="-1">전체 무대 ${Math.round(ED.scale*100)}%</div>
+       ${ED.need.map((n,i)=>{const nm=typeof n==="string"?(PANTRY[n]?PANTRY[n].nm:n):n.nm; const em=typeof n==="string"?(PANTRY[n]?PANTRY[n].e:"🥘"):(n.e||"🥘");
+         return `<div class="edchip ${EDTGT===i?'sel':''}" data-tg="${i}">${em} ${nm} ${Math.round((ED.sizes[i]||1)*100)}%</div>`;}).join("")}</div>
+     <div class="edrow" style="margin-top:1.4vmin;"><span style="font-weight:900;">크기</span>
+       <input id="ed-scale" type="range" min="${EDTGT===-1?60:50}" max="${EDTGT===-1?150:200}" step="5"
+         value="${Math.round((EDTGT===-1?ED.scale:(ED.sizes[EDTGT]||1))*100)}" style="flex:1;min-width:30vmin;">
+       <b id="ed-scv">${Math.round((EDTGT===-1?ED.scale:(ED.sizes[EDTGT]||1))*100)}%</b></div>
+     <div id="ed-pv" style="position:relative;height:56vmin;background:#f6efe2;border-radius:2vmin;overflow:hidden;margin-top:1.4vmin;"></div></div>`:""}
+   <div style="display:flex;gap:2vmin;justify-content:center;margin:3vmin 0;">
+     <button class="big-btn" id="ed-save">저장</button>
+     <button class="big-btn" id="ed-cancel" style="background:#ddd;color:#444;box-shadow:0 1vmin 0 #bbb;">취소</button></div>`;
+  const nm=b.querySelector("#ed-nm"), ingnm=b.querySelector("#ed-ingnm"), inge=b.querySelector("#ed-inge"), stp=b.querySelector("#ed-step");
+  nm.value=ED.nm; ingnm.value=EDI.nm; inge.value=EDI.e; stp.value=EDS;
+  const keep=()=>{ED.nm=nm.value; EDI.nm=ingnm.value; EDI.e=inge.value; EDS=stp.value;};
+  const rr=()=>{keep();renderEditor();};
+  b.querySelectorAll("[data-e]").forEach(el=>el.onclick=()=>{keep();ED.e=el.dataset.e;SND.pop();renderEditor();});
+  const imgdel=b.querySelector("#ed-imgdel"); if(imgdel)imgdel.onclick=()=>{keep();ED.img=null;renderEditor();};
+  b.querySelector("#ed-img").onchange=e=>{const f=e.target.files[0]; if(f)fileToData(f,640,url=>{keep();ED.img=url;SND.pop();renderEditor();});};
+  b.querySelector("#ed-pdish").onclick=()=>{keep();PROMPT.dish=!PROMPT.dish;renderEditor();};
+  b.querySelector("#ed-ping").onclick=()=>{keep();PROMPT.ing=!PROMPT.ing;renderEditor();};
+  const rmNeed=i=>{ ED.need.splice(i,1);   // 크기 매핑(순번 기반)도 함께 당김
+    const ns={}; Object.keys(ED.sizes).forEach(k=>{const n=+k; if(n<i)ns[n]=ED.sizes[k]; else if(n>i)ns[n-1]=ED.sizes[k];});
+    ED.sizes=ns; if(EDTGT===i)EDTGT=-1; else if(EDTGT>i)EDTGT--; };
+  b.querySelectorAll("[data-k]").forEach(el=>el.onclick=()=>{keep();const k=el.dataset.k,i=ED.need.indexOf(k);
+    if(i<0){ED.need.push(k);say(PANTRY[k].nm);}else rmNeed(i); SND.pop();renderEditor();});
+  b.querySelector("#ed-ingimg").onchange=e=>{const f=e.target.files[0]; if(f)fileToData(f,480,url=>{keep();EDI.img=url;SND.pop();renderEditor();});};
+  b.querySelector("#ed-adding").onclick=()=>{keep();
+    if(!EDI.nm.trim()){say("재료 이름을 적어요.");ingnm.focus();return;}
+    ED.need.push({nm:EDI.nm.trim(),e:EDI.e.trim(),img:EDI.img});
+    if(!EDI.e.trim()&&!EDI.img)PROMPT.ing=true;   // 이모지·사진 둘 다 없으면 프롬프트 안내를 펼침
+    say(EDI.nm.trim()); SND.pop(); EDI={nm:"",e:"",img:null}; renderEditor();};
+  b.querySelectorAll("#ed-needsel [data-ni]").forEach(el=>el.onclick=()=>{keep();rmNeed(+el.dataset.ni);SND.pop();renderEditor();});
+  b.querySelector("#ed-addstep").onclick=()=>{keep();
+    const t=EDS.trim(); if(!t){say("과정 문장을 적어요.");stp.focus();return;}
+    const a=matchAct(t);
+    if(a){ ED.acts.push({a:a,text:t}); say(CUSTOM_ACTS[a].nm+" 동작으로 만들었어요."); SND.pop(); EDS=""; PEND=null; }
+    else { PEND={text:t}; }
+    renderEditor();};
+  if(PEND){
+    b.querySelector("#ed-pendimg").onchange=e=>{const f=e.target.files[0]; if(f)fileToData(f,800,url=>{keep();
+      ED.acts.push({a:"show",text:PEND.text,img:url}); PEND=null; EDS=""; SND.pop(); renderEditor();});};
+    b.querySelector("#ed-pendplain").onclick=()=>{keep();ED.acts.push({a:"show",text:PEND.text}); PEND=null; EDS=""; SND.pop(); renderEditor();};
+    b.querySelector("#ed-pendcancel").onclick=()=>{keep();PEND=null;renderEditor();};
+  }
+  b.querySelectorAll("[data-a]").forEach(el=>el.onclick=()=>{keep();const a=el.dataset.a;
+    ED.acts.push({a:a}); say(CUSTOM_ACTS[a].nm); SND.pop(); renderEditor();});
+  b.querySelectorAll("#ed-seq [data-i]").forEach(el=>el.onclick=()=>{keep();ED.acts.splice(+el.dataset.i,1);SND.pop();renderEditor();});
+  b.querySelectorAll("[data-tg]").forEach(el=>el.onclick=()=>{keep();EDTGT=+el.dataset.tg;SND.pop();renderEditor();});
+  const sc=b.querySelector("#ed-scale");
+  if(sc){ sc.oninput=()=>{ const v=+sc.value/100; b.querySelector("#ed-scv").textContent=sc.value+"%";
+      if(EDTGT===-1){ ED.scale=v; const pin=document.getElementById("ed-pvin"); if(pin)pin.style.transform=`scale(${v})`; }
+      else { ED.sizes[EDTGT]=v; clearTimeout(PVT); PVT=setTimeout(edPreview,140); } };   // 재료 크기는 미리보기 재렌더로 반영
+    sc.onchange=()=>{keep();renderEditor();}; }   // 손 떼면 대상 칩의 % 갱신
+  b.querySelector("#ed-save").onclick=()=>{ keep();
+    if(!ED.nm.trim()){say("요리 이름을 적어요.");nm.focus();return;}
+    if(!ED.need.length){say("재료를 골라요.");return;}
+    if(!ED.acts.length){say("만드는 순서를 정해요.");return;}
+    const arr=customLoad(), rec={nm:ED.nm.trim(),e:ED.e,img:ED.img,scale:ED.scale,sizes:Object.assign({},ED.sizes),need:ED.need.slice(),acts:ED.acts.slice()};
+    if(EDIDX!=null)arr[EDIDX]=rec; else arr.push(rec);
+    customSave(arr); loadCustomDishes(); SND.clap(); say(ED.nm.trim()+" 요리를 저장했어요!"); showSelect(); };
+  b.querySelector("#ed-cancel").onclick=()=>{SND.pop();showSelect();};
+  edPreview();   // 미리보기 갱신(과정이 있을 때)
+}
+
 function band(){const b=document.getElementById("band");b.classList.remove("hide");
   b.innerHTML=STEPS.map((s,i)=>`<div class="dot ${i<stepIdx?'done':''} ${i===stepIdx?'cur':''}">${s.id}</div>`).join("");}
 function nextStep(){ stepIdx++; if(stepIdx>=STEPS.length){ goPrep("after"); return; } renderStep(); }
-function succeed(){ SND.good(); const s=STEPS[stepIdx]; toast(s.praise+"!"); say(s.praise);
+function succeed(){ if(curScreen()==="s-edit"){ SND.good(); toast("좋아요!"); return; }   // 편집기 미리보기에선 단계 진행 안 함
+  SND.good(); const s=STEPS[stepIdx]; toast(s.praise+"!"); say(s.praise);
   const wait=Math.max(1200, COOK_MIN_MS-(Date.now()-cookT0)); setTimeout(nextStep,wait); }
 function renderStep(){
   show("s-step"); setHead(null); band();
@@ -805,6 +1050,9 @@ function renderStep(){
   document.getElementById("g-say").onclick=()=>say(s.say);
   say(s.say);
   const w=document.getElementById("work"); w.innerHTML="";
+  // 교사 설정 크기(커스텀 요리): 무대 전체 확대/축소
+  const sc=(currentDish&&currentDish.scale&&currentDish.scale!==1)?currentDish.scale:null;
+  w.style.transform=sc?`scale(${sc})`:""; w.style.transformOrigin="50% 38%";
   STEPS[stepIdx].build(w);
 }
 function wholeSandwich(){ return `<img class="base" src="${IMG.hero}">`; }
@@ -961,7 +1209,8 @@ function splitAnim(w){
 function fcImg(k,sz){ sz=sz||"11vmin"; return IMG[k]?`<img src="${IMG[k]}" style="width:${sz};height:${sz};object-fit:contain;">`:`<span style="font-size:${sz};line-height:1;">${(FRUITS[k]||PANTRY[k]||{e:"🍓"}).e}</span>`; }
 /* 실제 과일 크기 배율(수박>파인애플>…>블루베리) */
 const FRUIT_SZ={watermelon:1.7,pineapple:1.6,melon:1.55,banana:1.25,mango:1.15,apple:1.1,orange:1.05,peach:1.05,kiwi:.85,strawberry:.8,grape:.65,blueberry:.55};
-function fsz(k,base){ return (base*(FRUIT_SZ[k]||1)).toFixed(1)+"vmin"; }
+function fsz(k,base){ const m=(currentDish&&currentDish.sizes&&currentDish.sizes[k])||1;   // 교사 설정 재료별 크기 배수
+  return (Math.max(7, base*(FRUIT_SZ[k]||1))*m).toFixed(1)+"vmin"; }  // 최소 7vmin — 작은 과일이 너무 작아지지 않게
 /* 흰 덩이(밥 한 술·요거트 한 스푼) — 그림(riceLump/yogurtBlob) 넣으면 자동 교체 */
 function lumpHTML(kind){ const key=kind==="yogurt"?"yogurtBlob":"riceLump";
   if(IMG[key]) return `<img src="${IMG[key]}" style="width:5.5vmin;height:4.5vmin;object-fit:contain;">`;
@@ -1020,8 +1269,11 @@ function slicedCluster(sz){ const base=parseFloat(sz)||12; const ks=chosen.lengt
 /* ===== 과일 주스 ===== */
 /* 1) 씻기(공용) — 수도꼭지 물줄기 아래에서 좌우로 문질러 씻기(방향전환 8회).
    문지르는 동안 물줄기가 흐르고 과일이 흔들리며 거품·물방울, 다 씻으면 반짝+환해짐 */
+/* 씻기용 그릇 — 수도꼭지 아래 그릇에 재료를 담아 놓은 모습 */
+function washBowlHTML(){ return `<div style="position:relative;width:74%;margin:0 auto;">${jimg("saladPlate","🥣")}
+  <div style="position:absolute;left:8%;right:8%;top:0;height:56%;display:flex;flex-wrap:wrap;gap:.4vmin;align-items:center;justify-content:center;">${(chosen.length?chosen:["strawberry","banana"]).slice(0,8).map(k=>fcImg(k,fsz(k,7.5))).join("")}</div></div>`; }
 function buildWashFruit(w, content){
-  content=content||fruitCluster("13vmin");
+  content=content||washBowlHTML();   // 기본: 그릇에 재료를 담아 물줄기 아래에서 씻기
   const faucet=IMG.jFaucet?`<img src="${IMG.jFaucet}" style="width:30%;margin:0 auto;display:block;position:relative;z-index:2;">`:`<div class="cardemoji" style="font-size:10vmin;text-align:center;">🚿</div>`;
   w.innerHTML=`<div class="plate-stage" style="width:clamp(280px,50vmin,540px);padding-bottom:8vmin;">
     ${faucet}
@@ -1109,7 +1361,7 @@ function buildJuicePut(w){
       </div>
       <div class="sidetray" id="tray"></div></div>`;
     const sIm=(k,b)=>IMG[k+"_s"]?`<img src="${IMG[k+"_s"]}" style="width:${fsz(k,b)};height:${fsz(k,b)};object-fit:contain;">`:fcImg(k,fsz(k,b));  // 썰린 모습 우선
-    const inlay=w.querySelector("#inlay"); if(inlay) inside.forEach(k=>inlay.insertAdjacentHTML("beforeend",sIm(k,5)));
+    const inlay=w.querySelector("#inlay"); if(inlay) inside.forEach(k=>inlay.insertAdjacentHTML("beforeend",sIm(k,7)));
     if(!queue.length){ const di=w.querySelector("#dropi"); if(di)di.remove(); setTimeout(succeed,500); return; }
     const tray=w.querySelector("#tray");
     queue.forEach(k=>{ const d=document.createElement("div");d.className="drag tray-item";d.style.position="relative";
@@ -1161,10 +1413,17 @@ function buildStir(w, vessel, tool, from, toolFade, toolDeg){
   const bowlImg=(k,extra)=>`<img src="${IMG[k]}" class="gimg" style="position:absolute;left:50%;bottom:4%;transform:translateX(-50%);width:100%;height:auto;${extra||""}">`;  // 그릇 폭·바닥 기준 정렬
   const toolArt=gart(tool!=null?tool:"🥄");  // 도구 원본이 손잡이 아래(아이 쪽) 방향
   w.innerHTML=povStage(`
-    <div class="povfood" id="bowl">${fade?bowlImg(from)+bowlImg(vessel,'opacity:0;" id="mixov'):gart(vessel||"🥣")}</div>
+    <div class="povfood" id="bowl"><div id="bowlin" style="position:relative;width:100%;height:100%;transition:transform .12s;">
+      ${fade?bowlImg(from)+bowlImg(vessel,'opacity:0;" id="mixov'):gart(vessel||"🥣")}
+      <div style="position:absolute;left:15%;top:16%;width:70%;height:42%;pointer-events:none;z-index:2;transform:scaleY(.62);">
+        <div id="swirl" style="width:100%;height:100%;border-radius:50%;opacity:0;transition:opacity .35s;filter:blur(.5vmin);
+          background:conic-gradient(rgba(255,255,255,0) 0deg 30deg,rgba(255,255,255,.34) 55deg 80deg,rgba(255,255,255,0) 105deg 150deg,rgba(255,255,255,.26) 175deg 200deg,rgba(255,255,255,0) 225deg 270deg,rgba(255,255,255,.3) 295deg 320deg,rgba(255,255,255,0) 345deg 360deg);"></div>
+      </div>
+    </div></div>
     <div id="ring"></div>
     <div class="tool" id="tool"><div style="position:relative;transform:rotate(${toolDeg||0}deg);">${toolArt}<div class="gripslot">${gripHand(0,"6.5vmin")}</div></div></div>`, "🔄 빙글빙글 저어요");
-  const pov=w.querySelector(".pov"),act=w.querySelector("#act"),tool_=w.querySelector("#tool"),ov=w.querySelector("#mixov");
+  const pov=w.querySelector(".pov"),act=w.querySelector("#act"),tool_=w.querySelector("#tool"),ov=w.querySelector("#mixov"),
+        swirl=w.querySelector("#swirl"),bowlin=w.querySelector("#bowlin");
   const TURNS=10, need=Math.PI*2*TURNS, pb=pipbar(w,TURNS);   // 같은 방향 열 바퀴(바퀴마다 진행 점)
   let total=0,last=null,down=false,done=false,mark=0;
   function ctr(){const r=pov.getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height*0.46};}
@@ -1175,10 +1434,14 @@ function buildStir(w, vessel, tool, from, toolFade, toolDeg){
     const prog=Math.min(1,Math.abs(total)/need);
     const m=Math.floor(prog*TURNS); if(m>mark){mark=m;SND.pop();sparkle(pov);pb.tick(m);}   // 한 바퀴마다 반짝+진행 점
     if(ov)ov.style.opacity=prog;
+    // 반죽이 젓는 방향으로 움직이는 효과: 소용돌이 하이라이트가 손 각도를 따라 돌고, 내용물이 살짝 쏠림
+    swirl.style.opacity=".9"; swirl.style.transform="rotate("+a+"rad)";
+    bowlin.style.transform="translate("+(Math.cos(a)*0.9)+"vmin,"+(Math.sin(a)*0.7)+"vmin)";
     if(toolFade)tool_.style.opacity=1-prog;   // 그림 속 거품기와 자연 교대(이중 노출 방지)
     tool_.style.transform="translate(-50%,-50%) rotate("+a+"rad) translateX(13vmin) rotate("+(-a)+"rad)";
     if(Math.abs(total)>=need&&!done){done=true;SND.good();setTimeout(succeed,300);} });
-  const up=()=>down=false;act.addEventListener("pointerup",up);act.addEventListener("pointercancel",up);
+  const up=()=>{down=false; swirl.style.opacity="0"; bowlin.style.transform="";};
+  act.addEventListener("pointerup",up);act.addEventListener("pointercancel",up);
 }
 /* 2) 붓기 — 기울이는 각도(각도 차용). grip={r,t,deg,flip,base,big} — 손잡이 위치·손 반전·그림 기본각·큰 팬 */
 function buildPour(w, bottle, target, grip){
@@ -1186,18 +1449,31 @@ function buildPour(w, bottle, target, grip){
   const cupW=grip.big?"clamp(280px,52vmin,560px)":"clamp(200px,40vmin,440px)";  // 팬(대상) 크게 — big이면 2배급
   w.innerHTML=povStage(`
     <div class="povfood" id="cup" style="width:${cupW};height:${cupW};top:${grip.big?62:56}%;">${gart(target||"🍳")}<div id="fill"></div></div>
-    <div class="tool" id="bottle" style="left:${grip.big?59:36}%;top:0;width:clamp(130px,26vmin,290px);height:clamp(130px,26vmin,290px);transform-origin:64% 82%;transition:transform .09s ease-out;"><div style="position:relative;transform:rotate(${grip.base||0}deg);">${gart(bottle||"🥛")}<div style="position:absolute;right:${grip.r};top:${grip.t};z-index:3;pointer-events:none;">${gripHand(grip.deg,"8vmin",grip.flip)}</div></div></div>
-    <div id="stream"></div>`, "↻ 기울여서 부어요");
-  const act=w.querySelector("#act"),bot=w.querySelector("#bottle"),fill=w.querySelector("#fill"),stream=w.querySelector("#stream");
-  let down=false,done=false,fillv=0,sx=0;
-  act.addEventListener("pointerdown",e=>{down=true;sx=e.clientX;try{act.setPointerCapture(e.pointerId);}catch(_){}});
-  act.addEventListener("pointermove",e=>{ if(!down||done)return;
-    const tilt=Math.max(0,Math.min(48,(e.clientX-sx)/3.2));   // 오른쪽으로 끌수록 기울임 — 최대 ~48도(45도 언저리)
-    bot.style.transform="rotate("+(-tilt)+"deg)";  // 앞으로(주둥이가 아래·앞으로) 기울이기
-    if(tilt>=40){ stream.style.opacity="1"; fillv=Math.min(100,fillv+1.6); fill.style.height=(fillv*0.5)+"%";  // 45도 부근에서 부어짐
-      if(fillv>=100&&!done){done=true;stream.style.opacity="0";SND.good();setTimeout(succeed,300);} }
-    else stream.style.opacity="0"; });
-  const up=()=>{down=false;stream.style.opacity="0";};act.addEventListener("pointerup",up);act.addEventListener("pointercancel",up);
+    <div class="tool" id="bottle" style="left:${grip.big?59:36}%;top:14%;width:clamp(130px,26vmin,290px);height:clamp(130px,26vmin,290px);transform:translate(-50%,-50%);transform-origin:64% 82%;transition:transform .18s ease-out;"><div style="position:relative;transform:rotate(${grip.base||0}deg);">${gart(bottle||"🥛")}<div style="position:absolute;right:${grip.r};top:${grip.t};z-index:3;pointer-events:none;">${gripHand(grip.deg,"8vmin",grip.flip)}</div></div></div>
+    <div id="stream"></div>`, "🫗 주전자를 잡아 그릇 위로 가져가요");
+  const pov=w.querySelector(".pov"),act=w.querySelector("#act"),bot=w.querySelector("#bottle"),
+        fill=w.querySelector("#fill"),stream=w.querySelector("#stream"),cup=w.querySelector("#cup"),
+        hintEl=w.querySelector(".povhint");
+  let down=false,done=false,fillv=0,pouring=false,timer=null,said=false;
+  function stopPour(){ pouring=false; stream.style.opacity="0"; bot.style.transform="translate(-50%,-50%)"; }
+  function tick(){ if(done)return; if(!fill.isConnected){clearInterval(timer);return;}   // 단계 이탈 시 타이머 정리
+    if(!pouring)return; fillv=Math.min(100,fillv+2.2); fill.style.height=(fillv*0.5)+"%";   // 기울인 동안 시간 기반으로 차오름
+    if(fillv%12<2.2)beep(280+fillv*1.4,.06,"sine",.07);   // 졸졸
+    if(fillv>=100){ done=true; clearInterval(timer); stopPour(); SND.good(); setTimeout(succeed,300); } }
+  timer=setInterval(tick,60);
+  function move(e){ const r=pov.getBoundingClientRect();   // 주전자가 손을 따라옴
+    bot.style.left=Math.max(10,Math.min(90,(e.clientX-r.left)/r.width*100))+"%";
+    bot.style.top =Math.max(4,Math.min(58,(e.clientY-r.top)/r.height*100))+"%";
+    const c=cup.getBoundingClientRect();   // 그릇 위쪽에 오면 저절로 기울어 부어짐
+    const over=e.clientX>c.left&&e.clientX<c.right&&e.clientY>c.top-c.height*.45&&e.clientY<c.top+c.height*.55;
+    if(over&&!pouring&&!done){ pouring=true; stream.style.opacity="1";
+      bot.style.transform="translate(-50%,-50%) rotate(-44deg)";
+      if(!said){ said=true; if(hintEl)hintEl.textContent="🫗 그대로 잡고 있으면 부어져요"; } }
+    else if(!over&&pouring) stopPour(); }
+  act.addEventListener("pointerdown",e=>{down=true;try{act.setPointerCapture(e.pointerId);}catch(_){} move(e);});
+  act.addEventListener("pointermove",e=>{ if(!down||done)return; move(e); });
+  const up=()=>{down=false; if(!done)stopPour();};
+  act.addEventListener("pointerup",up);act.addEventListener("pointercancel",up);
 }
 /* 3) 반복 썰기 — 재료를 도마 위에 가로로 눕히고, 칼날이 그 위를 좌우로 오가며 내리썰기. layDeg=세로 그림 눕히는 각도(바나나 90) */
 function buildSliceRepeat(w, food, pieces, sliced, unit, layDeg){
@@ -1278,6 +1554,15 @@ function buildServe(w, food, opts){ opts=opts||{};
       succeed(); }
     else{d.style.transition="transform .2s";d.style.transform="";setTimeout(()=>d.style.transition="",200);} });
 }
+/* 보고 따라하기 — 자동 액션이 없는 과정용: 교사 첨부 사진(또는 요리사 이모지)+문장+'했어요' 버튼 */
+function buildShow(w, imgSrc, text){
+  w.innerHTML=`<div class="plate-stage" style="width:clamp(280px,52vmin,560px);text-align:center;">
+    ${imgSrc?`<img src="${imgSrc}" style="max-width:100%;max-height:48vmin;border-radius:2vmin;box-shadow:0 .8vmin 2.4vmin rgba(0,0,0,.15);">`
+            :`<div class="cardemoji" style="font-size:24vmin;">🧑‍🍳</div>`}
+    <div style="font-weight:900;font-size:clamp(16px,3vmin,32px);margin:1.6vmin 0;">${text||""}</div>
+    <button class="big-btn">했어요!</button></div>`;
+  w.querySelector("button").onclick=()=>{ SND.good(); sparkle(w.firstElementChild); succeed(); };
+}
 
 /* ===== 신규 제스처 툴킷 (v19) ===== */
 /* 뜨기 — 숟가락으로 소스통에서 떠서 그릇에 담기(N회). 영역판정은 e.clientX/Y 사용(중요) */
@@ -1330,20 +1615,20 @@ function buildSqueeze(w, opts){ opts=opts||{};
     <div id="act" style="position:absolute;inset:0;cursor:grab;"></div>
   </div>`;
   const stage=w.querySelector("#stage"),bottle=w.querySelector("#bottle"),act=w.querySelector("#act"),svg=w.querySelector("#sauce"),foodbox=w.querySelector("#foodbox");
-  const pb=pipbar(w,pumps); let down=false,ly=null,dist=0,cnt=0,done=false;
-  const xs=[24,44,64,80,36,58]; let px=18,py=22;
+  const pb=pipbar(w,pumps); let down=false,cnt=0,done=false;
+  let px=18,py=22;
   const moveBottle=e=>{const r=act.getBoundingClientRect();bottle.style.left=Math.max(14,Math.min(86,(e.clientX-r.left)/r.width*100))+"%";};
-  act.addEventListener("pointerdown",e=>{down=true;ly=e.clientY;dist=0;moveBottle(e);try{act.setPointerCapture(e.pointerId);}catch(_){}});
-  act.addEventListener("pointermove",e=>{ if(!down||done)return; moveBottle(e);
-    const dy=e.clientY-ly; ly=e.clientY; if(dy>0)dist+=dy; else if(dy<-20)dist=0;
-    if(dist>70){ dist=0; cnt++; SND.squirt();
-      const nx=xs[(cnt-1)%xs.length], ny=28+((cnt-1)%2)*12;
-      svg.insertAdjacentHTML("beforeend",`<line x1="${px}" y1="${py}" x2="${nx}" y2="${ny}" stroke="${color}" stroke-width="5" stroke-linecap="round"/><circle cx="${nx}" cy="${ny}" r="3.4" fill="${color}"/>`);
-      px=nx;py=ny; sparkle(stage); pb.tick(cnt);
-      bottle.style.transform="translateX(-50%) scaleY(.82)"; setTimeout(()=>bottle.style.transform="translateX(-50%)",90);   // 꾹 눌리는 케첩통
-      if(cnt>=pumps&&!done){done=true;SND.good();
-        if(opts.doneImg&&IMG[opts.doneImg]) setTimeout(()=>{foodbox.innerHTML=`<img class="land" src="${IMG[opts.doneImg]}" style="width:100%;display:block;">`;},250);   // 완성 그림으로
-        setTimeout(succeed,500);} } });
+  // 누를 때마다 병 위치에서 한 번씩 짜짐(탭 방식 — 내리긋기보다 조작이 쉬움). 끌어서 위치를 옮기고 또 누르기
+  act.addEventListener("pointerdown",e=>{ if(done)return; down=true; moveBottle(e); try{act.setPointerCapture(e.pointerId);}catch(_){}
+    cnt++; SND.squirt(); try{navigator.vibrate(20);}catch(_){}
+    const r=act.getBoundingClientRect(); const nx=Math.max(14,Math.min(86,(e.clientX-r.left)/r.width*100)), ny=26+((cnt-1)%3)*9;
+    svg.insertAdjacentHTML("beforeend",`<line x1="${px}" y1="${py}" x2="${nx}" y2="${ny}" stroke="${color}" stroke-width="5" stroke-linecap="round"/><circle cx="${nx}" cy="${ny}" r="3.4" fill="${color}"/>`);
+    px=nx;py=ny; sparkle(stage); pb.tick(cnt);
+    bottle.style.transform="translateX(-50%) scaleY(.82)"; setTimeout(()=>bottle.style.transform="translateX(-50%)",120);   // 꾹 눌리는 케첩통
+    if(cnt>=pumps){done=true;SND.good();
+      if(opts.doneImg&&IMG[opts.doneImg]) setTimeout(()=>{foodbox.innerHTML=`<img class="land" src="${IMG[opts.doneImg]}" style="width:100%;display:block;">`;},250);   // 완성 그림으로
+      setTimeout(succeed,500);} });
+  act.addEventListener("pointermove",e=>{ if(down&&!done)moveBottle(e); });
   const up=()=>down=false; act.addEventListener("pointerup",up);act.addEventListener("pointercancel",up);
 }
 /* 뭉치기 — 반복해서 눌러 모양 만들기(N회 탭). 자폐아동 친화 반복·촉각 */
@@ -1558,17 +1843,44 @@ function startReview(){
 }
 
 /* 요리 고르기 */
+let EDITMODE=false;
 function showSelect(){ ac(); chosen=[];stepIdx=0;
   document.getElementById("band").classList.add("hide"); setHead("무엇을 만들까요?");
   show("s-select");
   const g=document.getElementById("grid");g.innerHTML="";
   DISHES.forEach(d=>{const el=document.createElement("div");
-    el.className="dish"+(d.ready?"":" soon");
-    el.innerHTML=`<div class="em">${d.e}</div><div class="dn">${d.nm}</div>`+(d.ready?"":`<div class="tag">준비중</div>`);
+    el.className="dish"+(d.ready?"":" soon")+(d.custom?" custom":"");
+    const face=(d.custom&&d.img)?`<img src="${d.img}" style="width:11vmin;height:11vmin;object-fit:cover;border-radius:1.6vmin;">`:d.e;
+    el.innerHTML=`<div class="em">${face}</div><div class="dn">${d.nm}</div>`+(d.ready?"":`<div class="tag">준비중</div>`);
     el.onclick=()=>{ SND.pop();
+      if(EDITMODE){   // 편집 모드: 내가 만든 요리=바로 수정, 기본 요리=복제해서 편집
+        if(d.custom){ showEditor(customLoad()[+d.id.slice(6)], +d.id.slice(6)); }
+        else if(confirm("'"+d.nm+"'을(를) 내 요리로 복제해서 편집할까요?\n(기본 요리는 그대로 남아요)")){
+          const cfg={nm:d.nm+" (내 요리)", e:d.e,
+            need:(d.need||[]).filter(k=>PANTRY[k]).slice(0,12),
+            acts:(d.steps||[]).slice(0,-1).map(s=>({a:matchAct(s.say||s.text)||"show", text:s.text}))};
+          showEditor(cfg, null); }
+        return; }
       if(d.ready){showRecipe(d);} else {say(d.nm+"은 아직 준비중이에요.");} };
+    if(d.custom){ const del=document.createElement("div"); del.className="delbadge"; del.textContent="🗑";   // 교사 제작 요리: 눌러서 삭제
+      del.onclick=ev=>{ ev.stopPropagation(); SND.pop();
+        if(confirm("'"+d.nm+"' 요리를 지울까요?")){ const arr=customLoad(); arr.splice(+d.id.slice(6),1);
+          customSave(arr); loadCustomDishes(); showSelect(); } };
+      el.appendChild(del); }
+    if(EDITMODE&&d.ready){ const pen=document.createElement("div"); pen.className="delbadge"; pen.style.right=d.custom?"6.4vmin":".8vmin"; pen.textContent="✏️"; el.appendChild(pen); }
     g.appendChild(el);
   });
+  const plus=document.createElement("div");   // 교사용: 새 요리 만들기
+  plus.className="dish"; plus.style.borderStyle="dashed"; plus.style.opacity=".85";
+  plus.innerHTML=`<div class="em">➕</div><div class="dn">새 요리 만들기</div>`;
+  plus.onclick=()=>{ SND.pop(); showEditor(); };
+  g.appendChild(plus);
+  const modeBtn=document.createElement("div");   // 편집 모드 토글(교사)
+  modeBtn.id="editmode-btn";
+  modeBtn.style.cssText="position:fixed;right:3vmin;bottom:3vmin;z-index:30;background:"+(EDITMODE?"#e08c3c":"#fff")+";color:"+(EDITMODE?"#fff":"#555")+";font-weight:900;font-size:clamp(14px,2.8vmin,28px);padding:1.6vmin 2.4vmin;border-radius:3vmin;box-shadow:0 .6vmin 2vmin rgba(0,0,0,.2);cursor:pointer;";
+  modeBtn.textContent=EDITMODE?"✏️ 편집 중 — 요리를 눌러 고쳐요":"✏️";
+  modeBtn.onclick=()=>{ EDITMODE=!EDITMODE; SND.pop(); say(EDITMODE?"편집 모드예요. 고칠 요리를 눌러요.":"편집 모드를 껐어요."); showSelect(); };
+  g.appendChild(modeBtn);
   say("무엇을 만들까요? 요리를 골라요.");
 }
 
@@ -1595,14 +1907,14 @@ function buildCart(dish){
   let items;
   if(free){ items=need.slice(0,12); }
   else { // 필요한 재료(전부) + 방해자극으로 12칸 채우고 위치만 섞기 → 필요 재료 항상 포함
-    const distract=Object.keys(PANTRY).filter(k=>!need.includes(k)).sort(()=>Math.random()-.5).slice(0,Math.max(0,12-need.length));
+    const distract=Object.keys(PANTRY).filter(k=>!need.includes(k)&&!PANTRY[k].custom).sort(()=>Math.random()-.5).slice(0,Math.max(0,12-need.length));   // 교사 추가 재료는 다른 요리 방해자극에서 제외
     items=need.concat(distract).sort(()=>Math.random()-.5); }
   const grid=document.getElementById("grid12"); grid.innerHTML="";
   const got=new Set(), collected=[];
   const cd=document.getElementById("cart-done");
   cd.style.display=free?"":"none"; cd.classList.remove("hintglow");
   if(free){cd.disabled=true;cd.style.opacity=.4;cd.onclick=()=>{ if(collected.length) finish(); };}
-  function finish(){ chosen=collected.filter(k=>ING[k]||FRUITS[k]); SND.clap();
+  function finish(){ chosen=(currentDish&&currentDish.custom)?collected.slice():collected.filter(k=>ING[k]||FRUITS[k]); SND.clap();   // 커스텀 요리는 고른 재료 전부 사용
     document.getElementById("cookpop").classList.add("on"); say("다 골랐어요! 요리 시작 단추를 눌러요."); }
   function select(k,el,p){ got.add(k);collected.push(k);el.classList.add("sel");SND.pop();say(p.nm);   // 카드가 튀어나옴
     if(free){ cd.disabled=false; cd.style.opacity=1; cd.classList.add("hintglow");
@@ -1744,6 +2056,7 @@ document.getElementById("nav-prev").onclick=()=>{
   else if(s==="s-done"){ stepIdx=STEPS.length-1; renderStep(); }
   else if(s==="s-review"){ finishCooking(); }
   else if(s==="s-select"){ setHead(null); show("s-start"); }
+  else if(s==="s-edit"){ showSelect(); }
 };
 
 /* 배선 */
