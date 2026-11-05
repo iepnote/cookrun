@@ -1098,6 +1098,16 @@ addServeStep(CUPCAKE_STEPS, ()=>IMG.cupDone?"cupDone":(IMG.cupBaked?"cupBaked":"
 addServeStep(CANAPE_STEPS, ()=>IMG.canapeDone?"canapeDone":"🫓", ["canapeDone"], "🫓");
 [SANDWICH_STEPS,JUICE_STEPS,PANCAKE_STEPS,SALAD_STEPS,HWACHAE_STEPS,YOGURTBOWL_STEPS,RICEBALL_STEPS,HOTDOG_STEPS,PIZZA_STEPS,CUPCAKE_STEPS,CANAPE_STEPS].forEach(addGiveStep);   // 모든 요리 마지막 = 주기
 
+/* 과일 꼬치(신규 요리, 설계 §9-4): 씻기 → 썰기 → 꽂기 → 담기 → 주기. 과일 2종 이상 자유 선택 */
+const SKEWER_STEPS=[
+  {id:1,label:"씻기",text:"과일을 씻어요",say:"물에 과일을 깨끗이 씻어요",praise:"잘했어요",build:w=>buildWashFruit(w),card:pcard(["jFaucet"],"🚿🍓")},
+  {id:2,label:"썰기",text:"과일을 썰어요",say:"칼로 과일을 작게 썰어요",praise:"좋아요",build:w=>buildCutBoard(w,{content:fruitCluster("11vmin"),sliced:slicedCluster("11vmin"),hint:"🔪 과일을 썰어요"}),card:pcard(["jBoard"],"🔪🍓")},
+  {id:3,label:"꽂기",text:"꼬치에 꽂아요",say:"본보기처럼 과일을 순서대로 꽂아요",praise:"잘했어요",build:buildSkewer,card:()=>IMG.skewerDone?`<img src="${IMG.skewerDone}" class="gimg">`:`<div class="cardemoji">🍢</div>`},
+];
+DISHES.push({id:"skewer",nm:"과일 꼬치",e:"🍢",ready:true,freeChoice:true,minPick:2,need:JUICE_FRUITS.slice(),steps:SKEWER_STEPS,
+  done:()=> IMG.skewerDone?platedDone(`<img src="${IMG.skewerDone}" style="max-width:92%;max-height:100%;object-fit:contain;">`):platedDone(skewerDoneHTML())});
+addServeStep(SKEWER_STEPS, ()=>IMG.skewerDone?"skewerDone":skewerDoneHTML(), ["skewerDone"], "🍢"); addGiveStep(SKEWER_STEPS);
+
 /* ===== 교사용 '새 요리 만들기' 편집기 — 선택 화면 ➕에서 진입, localStorage 저장 =====
    과정은 기존 제스처 툴킷 14종을 조합. 마지막 '접시에 담기'는 자동으로 붙음.
    ponytail: 순서 재배열은 삭제 후 다시 추가로 대신함(드래그 정렬은 필요해지면) */
@@ -1117,13 +1127,14 @@ const CUSTOM_ACTS={
   knead:{nm:"뭉치기",ic:"👐",text:"꾹꾹 뭉쳐요",say:"손으로 꾹꾹 눌러 뭉쳐요",mk:d=>w=>buildKnead(w,{fromEmoji:"🍚",toEmoji:d.e,taps:5,hint:"👐 꾹꾹 눌러요"})},
   bake:{nm:"굽기",ic:"🔥",text:"구워요",say:"단추를 꾹 눌러 구워요",mk:d=>w=>buildBake(w,{fromEmoji:d.e,toEmoji:d.e,hint:"🔥 꾹 눌러 구워요"})},
   oven:{nm:"오븐",ic:"⏲️",text:"오븐에 구워요",say:"오븐에 넣고 구워요",mk:d=>w=>buildOven(w,{foodHTML:`<div class="cardemoji" style="font-size:18vmin;text-align:center;">${d.e}</div>`})},
+  skewer:{nm:"꽂기",ic:"🍢",text:"꼬치에 꽂아요",say:"본보기처럼 순서대로 꽂아요",mk:d=>w=>buildSkewer(w)},
   crack:{nm:"달걀 깨기",ic:"🥚",text:"달걀을 깨요",say:"달걀을 톡톡 치고 아래로 끌어 깨요",mk:d=>w=>buildCrackEgg(w)},
   flip:{nm:"뒤집기",ic:"⤴️",text:"뒤집어요",say:"위로 휙 뒤집어요",mk:d=>w=>buildFlip(w, IMG.pcPan?"pcPan":"🍳", d.e)},
 };
 function customLoad(){ try{return JSON.parse(localStorage.getItem(CUSTOM_KEY)||"[]");}catch(_){return [];} }
 function customSave(arr){ try{localStorage.setItem(CUSTOM_KEY,JSON.stringify(arr));}catch(_){ say("저장 공간이 가득 찼어요. 사진을 줄이거나 요리를 지워 주세요."); } }
 /* 문장 → 액션 자동 매칭(앞에 있는 규칙 우선) */
-const ACT_MATCH=[[/달걀|깨/,"crack"],[/씻/,"wash"],[/오븐/,"oven"],[/(썰|자르|잘라)/,"cut"],[/(저어|젓|섞)/,"stir"],[/(부어|붓|따라|따르)/,"pour"],
+const ACT_MATCH=[[/꽂|꼬치/,"skewer"],[/달걀|깨/,"crack"],[/씻/,"wash"],[/오븐/,"oven"],[/(썰|자르|잘라)/,"cut"],[/(저어|젓|섞)/,"stir"],[/(부어|붓|따라|따르)/,"pour"],
   [/짜/,"squeeze"],[/(뿌리|뿌려)/,"shake"],[/흔들/,"shake"],[/(떠서|떠요|뜨)/,"scoop"],[/(뭉치|뭉쳐|주먹)/,"knead"],
   [/(구워|굽)/,"bake"],[/뒤집/,"flip"],[/(껍질|까요|까서)/,"peel"],[/(발라|바르)/,"rub"],[/(올려|올리|담아|담)/,"fill"]];
 function matchAct(t){ for(const p of ACT_MATCH) if(p[0].test(t)) return p[1]; return null; }
@@ -1892,6 +1903,24 @@ function buildDishwash(w){
   const up=()=>down=false; dish.addEventListener("pointerup",up); dish.addEventListener("pointercancel",up);
 }
 
+/* 과일 꼬치 — 본보기 패턴(ABAB / ABCABC)대로 썬 과일을 막대 자리에 끌어 꽂기 (설계 §9-4) */
+function sliceImg(k,sz){ return IMG[k+"_s"]?`<img src="${IMG[k+"_s"]}" style="width:${sz};height:${sz};object-fit:contain;">`:fcImg(k,sz); }
+function skewerPattern(){ const ks=(chosen.length>=2?chosen:["strawberry","banana"]).slice(0,3); const len=LV().name==="다"?6:4; return Array.from({length:len},(_,i)=>ks[i%ks.length]); }
+function stickHTML(len){ return `<div style="position:relative;width:${len*8+10}vmin;height:3vmin;"><div style="position:absolute;left:0;right:0;top:40%;height:20%;background:#b8865b;border:.3vmin solid #7a5a3a;border-radius:1vmin;"></div><div style="position:absolute;right:-1.4vmin;top:35%;width:0;height:0;border-top:.7vmin solid transparent;border-bottom:.7vmin solid transparent;border-left:1.8vmin solid #7a5a3a;"></div></div>`; }
+function skewerDoneHTML(pat){ pat=pat||skewerPattern(); return `<div style="position:relative;display:inline-block;max-width:100%;">${stickHTML(pat.length)}<div style="position:absolute;left:1vmin;top:50%;transform:translateY(-50%);display:flex;gap:1vmin;">${pat.map(k=>sliceImg(k,"7vmin")).join("")}</div></div>`; }
+function buildSkewer(w){ const pat=skewerPattern(); const kinds=[...new Set(pat)];
+  w.innerHTML=scenePov(`
+    <div id="model" style="position:absolute;left:50%;top:2%;transform:translateX(-50%);z-index:4;background:rgba(255,253,248,.85);border-radius:2vmin;padding:.6vmin 1.2vmin;text-align:center;"><div class="nm">이렇게 꽂아요</div><div style="position:relative;display:inline-block;">${stickHTML(pat.length)}<div style="position:absolute;left:1vmin;top:50%;transform:translateY(-50%);display:flex;gap:1vmin;">${pat.map(k=>`<span class="mf" data-k="${k}">${sliceImg(k,"7vmin")}</span>`).join("")}</div></div></div>
+    <div id="stick" style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:3;">${stickHTML(pat.length)}<div style="position:absolute;left:1vmin;top:50%;transform:translateY(-50%);display:flex;gap:1vmin;">${pat.map((k,i)=>`<div id="slot${i}" class="target-out hintglow" data-i="${i}" style="position:relative;width:7vmin;height:7vmin;border-radius:50%;"></div>`).join("")}</div></div>
+    <div id="tray" style="position:absolute;left:50%;bottom:2%;transform:translateX(-50%);display:flex;gap:3vmin;z-index:5;">${kinds.map(k=>`<div class="drag tray-item" data-k="${k}" style="position:relative;">${sliceImg(k,"9vmin")}</div>`).join("")}</div>`, "🍢 본보기처럼 과일을 꽂아요");
+  const pov=w.querySelector(".pov"); w.querySelector("#act").style.pointerEvents="none";
+  let next=0; const pb=pipbar(w,pat.length);
+  w.querySelectorAll("#tray .drag").forEach(d=>{ drag(d,null,()=>{ const slot=w.querySelector("#slot"+next);
+      if(slot&&overlaps(d,slot)&&d.dataset.k===pat[next]){ SND.pop(); sparkle(pov); slot.innerHTML=sliceImg(d.dataset.k,"7vmin"); slot.classList.remove("hintglow","target-out"); d.style.transform=""; next++; pb.tick(next);
+        if(next>=pat.length){ w.querySelector("#tray").style.opacity=0; SND.good(); setTimeout(succeed,500); } }
+      else { d.style.transition="transform .2s"; d.style.transform=""; setTimeout(()=>d.style.transition="",200); if(slot&&overlaps(d,slot)) say("다음은 "+(PANTRY[pat[next]]||{nm:""}).nm+"예요."); } }); });
+}
+
 /* ===== 신규 제스처 툴킷 (v19) ===== */
 /* 뜨기 — 숟가락으로 소스통에서 떠서 그릇에 담기(N회). 영역판정은 e.clientX/Y 사용(중요) */
 function buildScoop(w, opts){ opts=opts||{};
@@ -2274,7 +2303,7 @@ function buildCart(dish){
   const got=new Set(), collected=[];
   const cd=document.getElementById("cart-done");
   cd.style.display=free?"":"none"; cd.classList.remove("hintglow");
-  if(free){cd.disabled=true;cd.style.opacity=.4;cd.onclick=()=>{ if(collected.length) finish(); };}
+  if(free){cd.disabled=true;cd.style.opacity=.4;cd.onclick=()=>{ if(collected.length<(dish.minPick||1)){ say(dish.minPick>1?"두 가지 이상 골라요.":"재료를 골라요."); return; } finish(); };}
   function finish(){ chosen=(currentDish&&currentDish.custom)?collected.slice():collected.filter(k=>ING[k]||FRUITS[k]); SND.clap();   // 커스텀 요리는 고른 재료 전부 사용
     document.getElementById("cookpop").classList.add("on"); say("다 골랐어요! 요리 시작 단추를 눌러요."); }
   function select(k,el,p){ got.add(k);collected.push(k);el.classList.add("sel");SND.pop();say(p.nm);   // 카드가 튀어나옴
@@ -2533,7 +2562,7 @@ console.assert(JUICE_STEPS.length===7,"주스 7단계(따르기·주기 포함)"
 console.assert(DISHES.length>=10,"요리 10개 이상");
 console.assert(PANCAKE_STEPS.length===8,"팬케이크 8단계(달걀·담기·주기 포함)");
 console.assert(RICEBALL_STEPS.length===4,"주먹밥 4단계(담기·주기 포함)");
-console.assert(DISHES.filter(d=>d.ready).length===11,"완성 요리 11종(전부 ready)");
+console.assert(DISHES.filter(d=>d.ready&&!d.custom).length===12,"기본 요리 12종(꼬치 포함)");
 console.assert(DISHES.every(d=>d.steps&&d.steps.length&&typeof d.done==="function"),"모든 요리 steps·done 보유");
 console.assert(["hwachae","yogurt","riceball","hotdog","pizza","cupcake","canape"].every(id=>DISHES.find(d=>d.id===id).ready),"신규 7종 ready");
 console.assert(DISHES.every(d=>d.freeChoice||d.need.every(k=>PANTRY[k])),"모든 요리 need는 PANTRY에 존재");
