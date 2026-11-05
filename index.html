@@ -1069,7 +1069,8 @@ const CANAPE_STEPS=[
 SANDWICH_STEPS.splice(4,0,{id:0,label:"모양 고르기",text:"어떻게 자를까요?",say:"세모와 네모 중 하나를 골라요",praise:"좋아요",build:w=>buildChoice(w,{options:SHAPE_OPTS},id=>PICK.shape=id),card:()=>`<div class="cardemoji">🔺⬜</div>`});
 HOTDOG_STEPS.splice(2,0,{id:0,label:"소스 고르기",text:"어떤 소스를 짤까요?",say:"케첩과 머스터드 중 하나를 골라요",praise:"좋아요",build:w=>buildChoice(w,{options:SAUCE_OPTS},id=>PICK.sauce=id),card:()=>`<div class="cardemoji">🥫🟡</div>`});
 CUPCAKE_STEPS.splice(4,0,{id:0,label:"색 고르기",text:"토핑 색을 골라요",say:"토핑 색을 골라요",praise:"좋아요",build:w=>buildChoice(w,{options:TOP_OPTS},id=>PICK.top=id),card:()=>`<div class="cardemoji">🎨🧁</div>`});
-function renumber(s){ s.forEach((x,i)=>x.id=i+1); } [SANDWICH_STEPS,HOTDOG_STEPS,CUPCAKE_STEPS].forEach(renumber);
+PANCAKE_STEPS.splice(2,0,EGG_STEP()); CUPCAKE_STEPS.splice(0,0,EGG_STEP());   // 달걀 깨기(설계 §9-1): 반죽 젓기 앞
+function renumber(s){ s.forEach((x,i)=>x.id=i+1); } [SANDWICH_STEPS,HOTDOG_STEPS,CUPCAKE_STEPS,PANCAKE_STEPS].forEach(renumber);
 
 /* ===== 모든 요리 공통 마지막 단계: 완성 요리를 접시에 담기 (주스만 컵에 따르기) ===== */
 function addServeStep(steps, foodFn, cardKeys, emoji){
@@ -1109,12 +1110,13 @@ const CUSTOM_ACTS={
   knead:{nm:"뭉치기",ic:"👐",text:"꾹꾹 뭉쳐요",say:"손으로 꾹꾹 눌러 뭉쳐요",mk:d=>w=>buildKnead(w,{fromEmoji:"🍚",toEmoji:d.e,taps:5,hint:"👐 꾹꾹 눌러요"})},
   bake:{nm:"굽기",ic:"🔥",text:"구워요",say:"단추를 꾹 눌러 구워요",mk:d=>w=>buildBake(w,{fromEmoji:d.e,toEmoji:d.e,hint:"🔥 꾹 눌러 구워요"})},
   oven:{nm:"오븐",ic:"⏲️",text:"오븐에 구워요",say:"오븐에 넣고 구워요",mk:d=>w=>buildOven(w,{foodHTML:`<div class="cardemoji" style="font-size:18vmin;text-align:center;">${d.e}</div>`})},
+  crack:{nm:"달걀 깨기",ic:"🥚",text:"달걀을 깨요",say:"달걀을 톡톡 치고 아래로 끌어 깨요",mk:d=>w=>buildCrackEgg(w)},
   flip:{nm:"뒤집기",ic:"⤴️",text:"뒤집어요",say:"위로 휙 뒤집어요",mk:d=>w=>buildFlip(w, IMG.pcPan?"pcPan":"🍳", d.e)},
 };
 function customLoad(){ try{return JSON.parse(localStorage.getItem(CUSTOM_KEY)||"[]");}catch(_){return [];} }
 function customSave(arr){ try{localStorage.setItem(CUSTOM_KEY,JSON.stringify(arr));}catch(_){ say("저장 공간이 가득 찼어요. 사진을 줄이거나 요리를 지워 주세요."); } }
 /* 문장 → 액션 자동 매칭(앞에 있는 규칙 우선) */
-const ACT_MATCH=[[/씻/,"wash"],[/오븐/,"oven"],[/(썰|자르|잘라)/,"cut"],[/(저어|젓|섞)/,"stir"],[/(부어|붓|따라|따르)/,"pour"],
+const ACT_MATCH=[[/달걀|깨/,"crack"],[/씻/,"wash"],[/오븐/,"oven"],[/(썰|자르|잘라)/,"cut"],[/(저어|젓|섞)/,"stir"],[/(부어|붓|따라|따르)/,"pour"],
   [/짜/,"squeeze"],[/(뿌리|뿌려)/,"shake"],[/흔들/,"shake"],[/(떠서|떠요|뜨)/,"scoop"],[/(뭉치|뭉쳐|주먹)/,"knead"],
   [/(구워|굽)/,"bake"],[/뒤집/,"flip"],[/(껍질|까요|까서)/,"peel"],[/(발라|바르)/,"rub"],[/(올려|올리|담아|담)/,"fill"]];
 function matchAct(t){ for(const p of ACT_MATCH) if(p[0].test(t)) return p[1]; return null; }
@@ -1816,6 +1818,35 @@ function buildShow(w, imgSrc, text){
   w.querySelector("button").onclick=()=>{ SND.good(); sparkle(w.firstElementChild); succeed(); };
 }
 
+/* ===== 새 조작 활동 (설계 §9) ===== */
+/* 달걀 깨기 — 그릇에 톡톡 N번 치고(금이 감), 아래로 끌면 쩍 갈라져 노른자가 떨어짐 */
+function buildCrackEgg(w){
+  const bowl=IMG.pcRaw?`<img src="${IMG.pcRaw}" class="gimg">`:`<div class="cardemoji">🥣</div>`;
+  const eggArt=IMG.egg?`<img src="${IMG.egg}" class="gimg">`:`<div class="cardemoji">🥚</div>`;
+  w.innerHTML=scenePov(`
+    <div class="povfood" id="bowl" style="top:60%;">${bowl}</div>
+    <div id="egg" style="position:absolute;left:68%;top:28%;width:calc(var(--sz-food)*.6);height:calc(var(--sz-food)*.6);transform:translate(-50%,-50%);z-index:5;transition:transform .12s;cursor:pointer;touch-action:none;">
+      <div id="eggtop" style="position:absolute;inset:0;clip-path:inset(0 0 50% 0);transition:transform .4s;">${eggArt}</div>
+      <div id="eggbot" style="position:absolute;inset:0;clip-path:inset(50% 0 0 0);transition:transform .4s;">${eggArt}</div>
+      <svg id="cracks" viewBox="0 0 100 100" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;"></svg>
+      <div style="position:absolute;left:50%;bottom:-20%;transform:translateX(-50%);pointer-events:none;">${holdHand(0)}</div>
+    </div>`, "🥚 달걀을 톡톡 치고, 아래로 끌어 깨요");
+  const pov=w.querySelector(".pov"),act=w.querySelector("#act"),egg=w.querySelector("#egg"),top=w.querySelector("#eggtop"),bot=w.querySelector("#eggbot"),cr=w.querySelector("#cracks"),bowlEl=w.querySelector("#bowl");
+  const taps=N(3), pb=pipbar(w,taps+1); let cnt=0,done=false,down=false,sy=0; act.style.pointerEvents="none";
+  egg.addEventListener("pointerdown",e=>{ if(done)return; try{egg.setPointerCapture(e.pointerId);}catch(_){} down=true; sy=e.clientY;
+    if(cnt<taps){ cnt++; SND.knock(); vib(15); pb.tick(cnt); egg.style.transform="translate(-50%,-50%) translate(-6vmin,8vmin) rotate(-20deg)"; setTimeout(()=>egg.style.transform="translate(-50%,-50%)",120);
+      cr.insertAdjacentHTML("beforeend",`<polyline points="${34+cnt*8},46 ${40+cnt*8},54 ${36+cnt*8},62" fill="none" stroke="#8a6d4b" stroke-width="2.5" stroke-linecap="round"/>`);
+      if(cnt===taps){ say("이제 아래로 끌어 깨요."); } } });
+  egg.addEventListener("pointermove",e=>{ if(!down||done||cnt<taps)return; if(e.clientY-sy>70){ done=true; SND.crack(); sparkle(pov); pb.tick(taps+1);
+    top.style.transform="translate(-30%,-30%) rotate(-30deg)"; bot.style.transform="translate(30%,-10%) rotate(25deg)";
+    const y=document.createElement("div"); y.id="yolk"; y.style.cssText="position:absolute;left:50%;top:20%;width:11vmin;height:8vmin;transform:translate(-50%,-50%);z-index:4;transition:transform .5s cubic-bezier(.3,.7,.5,1);";
+    y.innerHTML=`<div style="position:absolute;inset:0;background:rgba(255,255,255,.85);border-radius:50%;"></div><div style="position:absolute;left:30%;top:20%;width:40%;height:60%;background:#ffc23a;border-radius:50%;border:.3vmin solid #e0a020;"></div>`;
+    bowlEl.appendChild(y); requestAnimationFrame(()=>{ y.style.transform="translate(-50%,120%)"; });
+    setTimeout(()=>{ egg.style.opacity="0"; SND.good(); succeed(); },600); } });
+  const up=()=>down=false; egg.addEventListener("pointerup",up); egg.addEventListener("pointercancel",up);
+}
+function EGG_STEP(){ return {id:0,label:"달걀 깨기",text:"달걀을 깨요",say:"달걀을 그릇에 톡톡 치고 아래로 끌어 깨요",praise:"잘했어요",build:buildCrackEgg,card:pcard(["egg"],"🥚")}; }
+
 /* ===== 신규 제스처 툴킷 (v19) ===== */
 /* 뜨기 — 숟가락으로 소스통에서 떠서 그릇에 담기(N회). 영역판정은 e.clientX/Y 사용(중요) */
 function buildScoop(w, opts){ opts=opts||{};
@@ -2450,7 +2481,7 @@ window.addEventListener("load",()=>setTimeout(()=>say("요리를 만들어요. �
 console.assert(SANDWICH_STEPS.length===8,"샌드위치 8단계(모양·담기·주기 포함)");
 console.assert(JUICE_STEPS.length===7,"주스 7단계(따르기·주기 포함)");
 console.assert(DISHES.length>=10,"요리 10개 이상");
-console.assert(PANCAKE_STEPS.length===7,"팬케이크 7단계(담기·주기 포함)");
+console.assert(PANCAKE_STEPS.length===8,"팬케이크 8단계(달걀·담기·주기 포함)");
 console.assert(RICEBALL_STEPS.length===4,"주먹밥 4단계(담기·주기 포함)");
 console.assert(DISHES.filter(d=>d.ready).length===11,"완성 요리 11종(전부 ready)");
 console.assert(DISHES.every(d=>d.steps&&d.steps.length&&typeof d.done==="function"),"모든 요리 steps·done 보유");
