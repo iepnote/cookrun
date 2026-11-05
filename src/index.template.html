@@ -153,6 +153,7 @@
   .introlb{font-weight:800;font-size:calc(clamp(13px,2.4vmin,26px)*var(--fsx));text-align:center;}
   .cardemoji{display:flex;align-items:center;justify-content:center;line-height:1;}
   /* POV(1인칭 시점) 무대 — 도마가 비스듬히 보이고(각도), 도구는 내 손처럼 */
+  .device{text-align:center;padding-bottom:6vmin;}
   .pov{position:relative;width:clamp(300px,62vmin,680px);height:clamp(280px,54vmin,580px);
     perspective:130vmin;perspective-origin:50% 26%;display:flex;align-items:center;justify-content:center;margin-top:1vmin;}
   .board3d{position:absolute;left:6%;right:6%;top:30%;height:58%;border-radius:7vmin;
@@ -763,7 +764,7 @@ const HWACHAE_STEPS=[
 const YOGURTBOWL_STEPS=[
   {id:1,label:"요거트 뜨기",text:"요거트를 떠요",say:"숟가락으로 요거트를 떠서 그릇에 담아요",praise:"잘했어요",build:w=>buildScoop(w,{srcImg:"yogurt",srcEmoji:"🥛",srcName:"요거트",blobHTML:lumpHTML("yogurt"),bowlEmoji:"🥣",toImg:"saladPlate",scoops:3,hint:"🥄 요거트를 떠서 담아요"}),card:pcard("yogurt","🥄🍦")},
   {id:2,label:"과일 올리기",text:"과일을 올려요",say:"고른 과일을 그릇에 올려요",praise:"좋아요",build:buildSaladFill,card:pcard("saladPlate","🍓🥣")},
-  {id:3,label:"뿌리기",text:"시리얼을 뿌려요",say:"시리얼 통을 좌우로 흔들어 뿌려요",praise:"잘했어요",build:w=>buildShake(w,{content:IMG.cereal?`<img src="${IMG.cereal}" style="width:26vmin;display:block;margin:0 auto;">`:`<div class="cardemoji" style="font-size:16vmin;">🥣</div>`,need:6,hint:"🥣↔️ 흔들어 시리얼을 뿌려요"}),card:pcard("cereal","🥣✨")},
+  {id:3,label:"뿌리기",text:"시리얼을 뿌려요",say:"시리얼 통을 좌우로 흔들어 뿌려요",praise:"잘했어요",build:w=>buildShake(w,{content:IMG.cereal?`<img src="${IMG.cereal}" style="width:var(--sz-tool);display:block;margin:0 auto;">`:`<div class="cardemoji" style="font-size:16vmin;">🥣</div>`,need:6,hint:"🥣↔️ 흔들어 시리얼을 뿌려요"}),card:pcard("cereal","🥣✨")},
   {id:4,label:"섞기",text:"골고루 섞어요",say:"숟가락으로 골고루 저어요",praise:"완성",build:buildSaladMix,card:pcard("spoon","🔄")},
 ];
 (function(){ const d=DISHES.find(x=>x.id==="yogurt"); d.ready=true; d.freeChoice=true; d.need=JUICE_FRUITS.slice(); d.steps=YOGURTBOWL_STEPS;
@@ -812,16 +813,16 @@ const CUPCAKE_STEPS=[
   {id:2,label:"붓기",text:"컵에 부어요",say:"반죽 그릇을 기울여 컵에 부어요",praise:"좋아요",build:w=>buildPour(w, IMG.pcJug?"pcJug":(IMG.cupBatter?"cupBatter":"🥣"), IMG.cupEmpty?"cupEmpty":"🧁", {r:"-8%",t:"0%",deg:20,flip:1,big:1}, "반죽 그릇"),card:pcard(["pcJug"],"↻🧁")},  // 거품기 없는 반죽 저그 + 손잡이 쥔 손(팬케이크와 동일)
   {id:3,label:"굽기",text:"오븐에 구워요",say:"단추를 꾹 눌러 노릇하게 구워요",praise:"잘했어요",build:w=>buildBake(w,{fromEmoji:"🧁",toImg:(IMG.cupBaked?"cupBaked":null),toEmoji:"🧁",hint:"🔥 꾹 눌러 구워요"}),card:pcard([],"🔥🧁")},
   {id:4,label:"크림 짜기",text:"크림을 짜요",say:"크림을 빙글빙글 짜서 올려요",praise:"좋아요",build:w=>buildSqueeze(w,{bottleHTML:creamBagHTML(),foodEmoji:"🧁",foodImg:(IMG.cupBaked?"cupBaked":null),pumps:4,color:"#f7c9d8",hint:"⬇️ 크림을 짜요"}),card:pcard([],"🌀🧁")},
-  {id:5,label:"뿌리기",text:"토핑을 뿌려요",say:"스프링클을 흔들어 뿌려요",praise:"완성",build:w=>buildShake(w,{content:`<div class="cardemoji" style="font-size:15vmin;">🧁</div>`,need:6,hint:"✨↔️ 흔들어 토핑을 뿌려요"}),card:pcard([],"✨🧁")},
+  {id:5,label:"뿌리기",text:"토핑을 뿌려요",say:"스프링클을 흔들어 뿌려요",praise:"완성",build:w=>buildShake(w,{content:IMG.cupBaked?`<img src="${IMG.cupBaked}" style="width:var(--sz-food);display:block;margin:0 auto;">`:`<div class="cardemoji" style="font-size:15vmin;">🧁</div>`,need:6,hint:"✨↔️ 흔들어 토핑을 뿌려요"}),card:pcard([],"✨🧁")},
 ];
 (function(){ const d=DISHES.find(x=>x.id==="cupcake"); d.ready=true; d.need=["flour","egg","milk"]; d.steps=CUPCAKE_STEPS;
   d.done=()=> IMG.cupDone?platedDone(`<img src="${IMG.cupDone}" style="max-width:66%;max-height:100%;object-fit:contain;">`):`<div class="cardemoji" style="font-size:clamp(120px,30vmin,320px);">🧁</div>`; })();
 
 /* 카나페: 크림 바르기(문지르기)→토핑 올리기(담기)→허브 뿌리기(흔들기) (need=치즈·토마토) */
 const CANAPE_STEPS=[
-  {id:1,label:"크림 바르기",text:"크림을 발라요",say:"크래커에 크림치즈를 발라요",praise:"잘했어요",build:w=>rubMix(w, `<div class="cardemoji" style="font-size:20vmin;">🫓</div>`, `<div style="position:absolute;inset:22% 20%;border-radius:20%;background:radial-gradient(circle,rgba(255,250,230,.95),rgba(255,250,230,.5) 70%);"></div>`, "🧀 크림을 발라요"), card:pcard("cheese","🫓🧀")},
+  {id:1,label:"크림 바르기",text:"크림을 발라요",say:"크래커에 크림치즈를 발라요",praise:"잘했어요",build:w=>rubMix(w, IMG.cracker?`<img src="${IMG.cracker}" style="width:var(--sz-food);display:block;margin:0 auto;">`:`<div class="cardemoji" style="font-size:20vmin;">🫓</div>`, `<div style="position:absolute;inset:22% 20%;border-radius:20%;background:radial-gradient(circle,rgba(255,250,230,.95),rgba(255,250,230,.5) 70%);"></div>`, "🧀 크림을 발라요"), card:pcard("cheese","🫓🧀")},
   {id:2,label:"올리기",text:"토핑을 올려요",say:"토마토를 크래커 위에 올려요",praise:"좋아요",build:w=>buildServe(w, IMG.tomato?"tomato":"🍅"),card:pcard("tomato","🍅")},
-  {id:3,label:"뿌리기",text:"허브를 뿌려요",say:"허브를 흔들어 뿌려요",praise:"완성",build:w=>buildShake(w,{content:`<div class="cardemoji" style="font-size:15vmin;">🫓</div>`,need:6,hint:"🌿↔️ 흔들어 허브를 뿌려요"}),card:pcard([],"🌿🫓")},
+  {id:3,label:"뿌리기",text:"허브를 뿌려요",say:"허브를 흔들어 뿌려요",praise:"완성",build:w=>buildShake(w,{content:IMG.canapeDone?`<img src="${IMG.canapeDone}" style="width:var(--sz-food);display:block;margin:0 auto;">`:`<div class="cardemoji" style="font-size:15vmin;">🫓</div>`,need:6,hint:"🌿↔️ 흔들어 허브를 뿌려요"}),card:pcard([],"🌿🫓")},
 ];
 (function(){ const d=DISHES.find(x=>x.id==="canape"); d.ready=true; d.need=["cheese","tomato"]; d.steps=CANAPE_STEPS;
   d.done=()=> IMG.canapeDone?platedDone(`<img src="${IMG.canapeDone}" style="max-width:80%;max-height:100%;object-fit:contain;">`):`<div class="cardemoji" style="font-size:clamp(120px,30vmin,320px);">🫓🍅</div>`; })();
@@ -1065,13 +1066,10 @@ function wholeSandwich(){ return `<img class="base" src="${IMG.hero}">`; }
 
 /* 1) 빵 두 장 나란히 접시에 */
 function buildBread(w){
-  w.innerHTML=`<div class="cookrow">
-    <div class="plate-stage"><img class="plate" src="${IMG.plate}">
+  w.innerHTML=sceneTable(`<div class="plate-stage"><img class="plate" src="${IMG.plate}">
       <div id="dropb" class="target-out hintglow" style="left:14%;right:14%;top:26%;height:42%;border-radius:50%;"></div>
       <div class="sand" id="onplate"></div>
-    </div>
-    <div class="sidetray" id="tray"></div>
-  </div>`;
+    </div>`);
   const tray=w.querySelector("#tray"), onp=w.querySelector("#onplate");
   const d=document.createElement("div");d.className="drag tray-item";d.style.position="relative";
   d.style.width="calc(var(--sz-ing)*1.3)";
@@ -1140,14 +1138,11 @@ function buildStack(w){
   const placed=[], queue=chosen.slice();
   function render(){
     const layers=placed.map((k,j)=>lyrHTML(k,j,"land")).join("");
-    w.innerHTML=`<div class="cookrow">
-      <div class="plate-stage"><img class="plate" src="${IMG.plate}">
+    w.innerHTML=sceneTable(`<div class="plate-stage"><img class="plate" src="${IMG.plate}">
         <div class="sand" id="sand"><img class="base" src="${IMG.breadBot}">${layers}
-          <div id="dropi" class="hintglow" style="position:absolute;left:10%;right:10%;top:12%;bottom:12%;z-index:20;border:.7vmin dashed #ffb703;border-radius:22% 22% 26% 26%/24% 24% 32% 32%;pointer-events:none;"></div>
+          <div id="dropi" class="target-out hintglow" style="left:10%;right:10%;top:12%;bottom:12%;z-index:20;pointer-events:none;"></div>
         </div>
-      </div>
-      <div class="sidetray" id="tray"></div>
-    </div>`;
+      </div>`);
     if(queue.length===0){ const di=document.getElementById("dropi"); if(di)di.remove(); setTimeout(succeed,500); return; }
     const tray=w.querySelector("#tray");
     queue.forEach(k=>{
@@ -1166,13 +1161,10 @@ function buildStack(w){
 /* 5) 빵 덮기 — 접시 위 샌드위치에 윗빵 덮기 */
 function buildCover(w){
   const layers=chosen.map((k,j)=>lyrHTML(k,j)).join("");
-  w.innerHTML=`<div class="cookrow">
-    <div class="plate-stage"><img class="plate" src="${IMG.plate}">
+  w.innerHTML=sceneTable(`<div class="plate-stage"><img class="plate" src="${IMG.plate}">
       <div class="sand" id="sand"><img class="base" src="${IMG.breadBot}">${layers}</div>
-      <div id="dropt" class="target-out hintglow" style="left:8%;right:8%;top:8%;height:30%;border-style:dotted;"></div>
-    </div>
-    <div class="sidetray" id="tray"></div>
-  </div>`;
+      <div id="dropt" class="target-out hintglow" style="left:8%;right:8%;top:8%;height:30%;"></div>
+    </div>`);
   const tray=w.querySelector("#tray");
   const d=document.createElement("div");d.className="drag tray-item";d.style.position="relative";d.style.width="calc(var(--sz-ing)*1.3)";
   d.innerHTML=`<img src="${IMG.breadTop}">`;
@@ -1232,11 +1224,11 @@ function saladBowlHTML(){ return `<div style="position:relative;width:100%;">${j
 function buildSaladFill(w){
   const placed=[],queue=chosen.slice();
   function render(){
-    w.innerHTML=`<div class="cookrow"><div class="plate-stage">
+    w.innerHTML=sceneTable(`<div class="plate-stage">
       ${jimg("saladPlate","🥣")}
       <div id="laid" style="position:absolute;left:8%;right:8%;top:8%;height:58%;display:flex;flex-wrap:wrap;gap:.5vmin;align-items:center;justify-content:center;"></div>
       <div id="dropi" class="target-out hintglow" style="left:10%;right:10%;top:8%;height:58%;border-radius:42%;"></div>
-    </div><div class="sidetray" id="tray"></div></div>`;
+    </div>`);
     const laid=w.querySelector("#laid");
     placed.forEach(k=>{ laid.insertAdjacentHTML("beforeend",fcImg(k,fsz(k,10))); });   // 담으면 오히려 크게(실제 과일 크기 반영)
     if(!queue.length){ const di=w.querySelector("#dropi"); if(di)di.remove(); setTimeout(succeed,500); return; }
@@ -1284,7 +1276,7 @@ function washBowlHTML(){ return `<div style="position:relative;width:74%;margin:
 function buildWashFruit(w, content){
   content=content||washBowlHTML();   // 기본: 그릇에 재료를 담아 물줄기 아래에서 씻기
   const faucet=IMG.jFaucet?`<img src="${IMG.jFaucet}" style="width:30%;margin:0 auto;display:block;position:relative;z-index:2;">`:`<div class="cardemoji" style="font-size:10vmin;text-align:center;">🚿</div>`;
-  w.innerHTML=`<div class="plate-stage" style="padding-bottom:8vmin;">
+  w.innerHTML=`<div class="plate-stage device" style="padding-bottom:8vmin;">
     ${faucet}
     <div id="wstream" style="position:absolute;left:50%;top:20%;width:6%;height:38%;transform:translateX(-50%);border-radius:0 0 40% 40%;
       background:repeating-linear-gradient(180deg,rgba(150,210,255,.78) 0 1.6vmin,rgba(200,235,255,.5) 1.6vmin 3.2vmin);
@@ -1362,13 +1354,11 @@ function buildJuicePut(w){
   const queue=(chosen.length?chosen:["strawberry","banana"]).slice(), inside=[];
   function render(){
     const blenderSrc=(inside.length&&IMG.jBlenderFull)?IMG.jBlenderFull:IMG.jBlender;
-    w.innerHTML=`<div class="cookrow">
-      <div class="plate-stage">
+    w.innerHTML=sceneTable(`<div class="plate-stage">
         ${blenderSrc?`<img src="${blenderSrc}" style="width:100%;display:block;">`:`<div class="cardemoji" style="font-size:clamp(150px,36vmin,380px);">🫙</div>`}
         ${(!IMG.jBlenderFull)?`<div id="inlay" style="position:absolute;left:24%;right:24%;top:24%;height:34%;display:flex;flex-wrap:wrap;gap:.4vmin;align-items:center;justify-content:center;"></div>`:""}
         <div id="dropi" class="target-out hintglow" style="left:22%;right:22%;top:14%;height:44%;border-radius:30%;"></div>
-      </div>
-      <div class="sidetray" id="tray"></div></div>`;
+      </div>`);
     const sIm=(k,b)=>IMG[k+"_s"]?`<img src="${IMG[k+"_s"]}" style="width:${fsz(k,b)};height:${fsz(k,b)};object-fit:contain;">`:fcImg(k,fsz(k,b));  // 썰린 모습 우선
     const inlay=w.querySelector("#inlay"); if(inlay) inside.forEach(k=>inlay.insertAdjacentHTML("beforeend",sIm(k,7)));
     if(!queue.length){ const di=w.querySelector("#dropi"); if(di)di.remove(); setTimeout(succeed,500); return; }
@@ -1385,7 +1375,7 @@ function buildJuicePut(w){
 /* 5) 갈기 — 믹서기 몸통의 단추를 10번 꾹꾹 누르기(별도 버튼 없이, 말풍선 안내) */
 function buildJuiceBlend(w){
   const taps=10;
-  w.innerHTML=`<div class="plate-stage" id="stage" style="text-align:center;padding-bottom:6vmin;">
+  w.innerHTML=`<div class="plate-stage device" id="stage">
     <div id="mxwrap" style="position:relative;display:inline-block;transition:transform .08s;">
       ${IMG.jBlenderFull?`<img id="mx" src="${IMG.jBlenderFull}" style="width:80%;display:block;margin:0 auto;">`:`<div id="mx" class="cardemoji" style="font-size:clamp(150px,36vmin,380px);">🫙</div>`}
       <div id="mxbtn" class="hintglow" style="position:absolute;left:50%;bottom:11%;transform:translateX(-50%);width:7vmin;height:7vmin;border-radius:50%;
@@ -1414,6 +1404,10 @@ function povStage(inner, hint){
     ${hint?`<div class="povhint bubblehint" style="top:-9vmin;">${hint}</div>`:""}
   </div>`;
 }
+/* ===== 토큰·화면 헬퍼 (설계 §1-3: 탁자형·도마형·기기형) ===== */
+function sceneTable(centerHTML, trayHTML){ return `<div class="cookrow">${centerHTML}<div class="sidetray" id="tray">${trayHTML||""}</div></div>`; }
+function sceneDevice(innerHTML, hint){ return `<div class="plate-stage device" id="stage">${innerHTML}${hint?`<div class="bubblehint" style="top:-7vmin;">${hint}</div>`:""}</div>`; }
+const scenePov=povStage;
 /* 이미지(IMG키)면 <img>, 아니면 이모지 텍스트 */
 function gart(x){ return (x&&IMG[x])?`<img src="${IMG[x]}" class="gimg">`:`${x||""}`; }
 /* 1) 원 젓기 — 같은 방향 회전만 누적(왔다갔다는 상쇄) + 젓기 전→후 크로스페이드 */
@@ -1664,7 +1658,7 @@ function buildKnead(w, opts){ opts=opts||{};
 /* 굽기 — 버튼을 꾹 눌러 굽기(열기·갈색화 연출). from→to 교체 */
 function buildBake(w, opts){ opts=opts||{};
   const art=(k,e)=>k&&IMG[k]?`<img src="${IMG[k]}" style="width:var(--sz-food);display:block;margin:0 auto;">`:`<div class="cardemoji" style="font-size:clamp(130px,30vmin,320px);">${e}</div>`;
-  w.innerHTML=`<div class="plate-stage" id="stage" style="text-align:center;">
+  w.innerHTML=`<div class="plate-stage device" id="stage">
     <div id="food" style="position:relative;transition:filter .2s;">${art(opts.fromImg,opts.fromEmoji||"🍞")}</div>
     <div id="heat" style="position:absolute;left:6%;right:6%;bottom:12%;height:0;background:linear-gradient(to top,rgba(255,120,0,.4),transparent);pointer-events:none;border-radius:4vmin;transition:height .12s;"></div>
     <button id="bakebtn" class="big-btn" style="margin:1.4vmin auto 0;display:block;">🔥 꾹 눌러 구워요</button>
