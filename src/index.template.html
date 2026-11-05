@@ -41,7 +41,8 @@
   .big-btn:active{transform:translateY(.6vmin);box-shadow:0 .4vmin 0 var(--accent-d);}
   .title{font-size:calc(clamp(26px,6vmin,84px)*var(--fsx));font-weight:900;text-align:center;
     background:rgba(255,255,255,.62);border-radius:2.6vmin;padding:.32em .9em;
-    box-shadow:0 .5vmin 1.6vmin rgba(0,0,0,.12);width:var(--titleW);max-width:94vw;box-sizing:border-box;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    box-shadow:0 .5vmin 1.6vmin rgba(0,0,0,.12);width:var(--titleW);max-width:94vw;box-sizing:border-box;white-space:normal;line-height:1.15;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+  .longtxt{font-size:calc(clamp(22px,4.8vmin,64px)*var(--fsx)*.8)!important;}
   .sub{font-size:calc(var(--fz)*var(--fsx));color:var(--soft);text-align:center;font-weight:700;}
 
   /* 네비게이션 바 */
@@ -59,7 +60,7 @@
   #headline{position:fixed;top:9.5vmin;left:50%;transform:translateX(-50%);z-index:25;text-align:center;display:none;
     font-weight:900;font-size:calc(clamp(22px,4.8vmin,64px)*var(--fsx));color:var(--ink);
     background:rgba(255,255,255,.62);border-radius:2.6vmin;box-shadow:0 .5vmin 1.6vmin rgba(0,0,0,.12);
-    padding:.35em 1em;pointer-events:none;width:var(--titleW);max-width:94vw;box-sizing:border-box;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    padding:.35em 1em;pointer-events:none;width:var(--titleW);max-width:94vw;box-sizing:border-box;white-space:normal;line-height:1.15;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
   #s-start,#s-done{padding-top:9vmin;}
   #s-start{justify-content:space-between;padding-bottom:6vmin;}
   #s-start .title{position:relative;z-index:2;} #s-start #btn-start{position:relative;z-index:2;}
@@ -97,7 +98,7 @@
     flex-direction:column;align-items:center;justify-content:flex-start;padding:1.2vmin;gap:1vmin;}
   .guide{font-size:calc(clamp(24px,5vmin,70px)*var(--fsx));font-weight:900;text-align:center;line-height:1.2;
     background:rgba(255,255,255,.62);border-radius:2.4vmin;padding:.3em .8em;box-shadow:0 .5vmin 1.4vmin rgba(0,0,0,.12);
-    width:var(--titleW);max-width:80vw;box-sizing:border-box;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    width:var(--titleW);max-width:80vw;box-sizing:border-box;white-space:normal;line-height:1.15;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
   .speak{font-size:clamp(24px,5vmin,60px);background:var(--panel);border:.5vmin solid var(--line);
     border-radius:50%;width:clamp(48px,9vmin,110px);height:clamp(48px,9vmin,110px);cursor:pointer;
     display:flex;align-items:center;justify-content:center;flex:0 0 auto;}
@@ -608,7 +609,8 @@ try{speechSynthesis.onvoiceschanged=()=>{};}catch(e){}
 /* 화면/안내박스 */
 function show(id){document.querySelectorAll(".screen").forEach(s=>s.classList.toggle("on",s.id===id));}
 function curScreen(){const s=document.querySelector(".screen.on");return s?s.id:"";}
-function setHead(t){const h=document.getElementById("headline"); if(t){h.textContent=t;h.style.display="block";} else h.style.display="none";}
+function fitText(el){ if(!el)return; el.classList.toggle("longtxt",(el.textContent||"").length>14); }
+function setHead(t){const h=document.getElementById("headline"); if(t){h.textContent=t;h.style.display="block";fitText(h);} else h.style.display="none";}
 document.addEventListener("pointerdown",e=>{const b=e.target.closest(".speak");if(b&&b.dataset.say)say(b.dataset.say);});
 
 /* 드래그 */
@@ -724,7 +726,7 @@ const PANCAKE_STEPS=[
   {id:1,label:"바나나 까기",text:"바나나를 까요",say:"아래로 쓸어 바나나 껍질을 까요",praise:"잘했어요",build:w=>buildPeel(w,"pcBanana","pcPeeled"),card:pcard("pcBanana","👇🍌")},
   {id:2,label:"썰기",text:"바나나를 썰어요",say:"칼을 위아래로 움직여 바나나를 썰어요",praise:"좋아요",build:w=>buildSliceRepeat(w,"pcPeeled",10,"pcSliced","pcSliceOne",90),card:pcard("pcSliced","🔪🍌")},
   {id:3,label:"반죽 젓기",text:"반죽을 저어요",say:"거품기로 빙글빙글 반죽을 저어요",praise:"잘했어요",build:w=>{const to=IMG.pcSmooth?"pcSmooth":"pcMix"; return (IMG.pcRaw&&IMG[to])?buildStir(w,to,"pcWhisk","pcRaw",!IMG.pcSmooth):buildStir(w, IMG.pcMix?"pcMix":"pcBatter", IMG.pcMix?"":"pcWhisk");},card:pcard(["pcMix","pcBatter"],"🔄🥣")},
-  {id:4,label:"붓기",text:"팬에 부어요",say:"반죽을 기울여 팬에 부어요",praise:"좋아요",build:w=>buildPour(w,"pcJug","pcPan",{r:"-8%",t:"0%",deg:20,flip:1,big:1}),card:pcard("pcJug","↻🍳")},  // 큰 팬 중앙에 반죽 줄기, 반전된 손이 손잡이(우상단)를 쥠
+  {id:4,label:"붓기",text:"팬에 부어요",say:"반죽을 기울여 팬에 부어요",praise:"좋아요",build:w=>buildPour(w,"pcJug","pcPan",{r:"-8%",t:"0%",deg:20,flip:1,big:1},"반죽 그릇"),card:pcard("pcJug","↻🍳")},  // 큰 팬 중앙에 반죽 줄기, 반전된 손이 손잡이(우상단)를 쥠
   {id:5,label:"뒤집기",text:"뒤집어요",say:"위로 휙 뒤집어요",praise:"완성",build:w=>buildFlip(w,"pcPan","pcPancake"),card:pcard("pcPancake","⤴️🥞")},
 ];  // 담기 단계 제거 — 완성 화면에서 접시 위 팬케이크(pcDone)로 보여줌
 (function(){ const p=DISHES.find(d=>d.id==="pancake"); p.steps=PANCAKE_STEPS;
@@ -744,7 +746,7 @@ const HWACHAE_STEPS=[
   {id:1,label:"씻기",text:"과일을 씻어요",say:"물에 과일을 깨끗이 씻어요",praise:"잘했어요",build:w=>buildWashFruit(w), card:pcard([],"🚿🍓")},
   {id:2,label:"썰기",text:"과일을 썰어요",say:"칼로 과일을 작게 썰어요",praise:"좋아요",build:w=>buildCutBoard(w,{content:fruitCluster("11vmin"),sliced:slicedCluster("11vmin"),hint:"🔪 과일을 썰어요"}),card:pcard([],"🔪🍉")},
   {id:3,label:"담기",text:"그릇에 담아요",say:"썬 과일을 그릇에 담아요",praise:"잘했어요",build:buildSaladFill,card:pcard("saladPlate","🥣")},
-  {id:4,label:"붓기",text:"사이다를 부어요",say:"사이다를 기울여 그릇에 부어요",praise:"좋아요",build:w=>buildPour(w, IMG.cider?"cider":"🥤", IMG.hwachaeBowl?"hwachaeBowl":"🍹"),card:pcard([],"🥤")},
+  {id:4,label:"붓기",text:"사이다를 부어요",say:"사이다를 기울여 그릇에 부어요",praise:"좋아요",build:w=>buildPour(w, IMG.cider?"cider":"🥤", IMG.hwachaeBowl?"hwachaeBowl":"🍹", null, "사이다"),card:pcard([],"🥤")},
   {id:5,label:"섞기",text:"골고루 섞어요",say:"숟가락으로 골고루 저어요",praise:"완성",build:w=>buildStir(w, IMG.hwachaeBowl?"hwachaeBowl":"🍹", IMG.spoon?"spoon":"🥄", null, false, 45),card:pcard(["spoon"],"🔄🍉")},  // 샐러드와 동일한 나무숟가락+손
 ];
 (function(){ const d=DISHES.find(x=>x.id==="hwachae"); d.ready=true; d.freeChoice=true; d.need=JUICE_FRUITS.slice(); d.steps=HWACHAE_STEPS;
@@ -803,9 +805,9 @@ const PIZZA_STEPS=[
 /* 컵케이크: 반죽 젓기→컵에 붓기→굽기→크림 짜기→토핑 뿌리기 (need=밀가루·달걀·우유) */
 const CUPCAKE_STEPS=[
   {id:1,label:"반죽 젓기",text:"반죽을 저어요",say:"거품기로 빙글빙글 반죽을 저어요",praise:"잘했어요",build:w=>{const to=IMG.pcSmooth?"pcSmooth":"pcMix"; return (IMG.pcRaw&&IMG[to])?buildStir(w,to,"pcWhisk","pcRaw",!IMG.pcSmooth):buildStir(w, IMG.cupBatter?"cupBatter":"🥣", IMG.spoon?"spoon":"🥄", null, false, 45);},card:pcard(["pcMix","cupBatter"],"🔄🥣")},  // 팬케이크와 동일한 그릇·거품기·손(일관성)
-  {id:2,label:"붓기",text:"컵에 부어요",say:"반죽 그릇을 기울여 컵에 부어요",praise:"좋아요",build:w=>buildPour(w, IMG.pcJug?"pcJug":(IMG.cupBatter?"cupBatter":"🥣"), IMG.cupEmpty?"cupEmpty":"🧁", {r:"-8%",t:"0%",deg:20,flip:1,big:1}),card:pcard(["pcJug"],"↻🧁")},  // 거품기 없는 반죽 저그 + 손잡이 쥔 손(팬케이크와 동일)
+  {id:2,label:"붓기",text:"컵에 부어요",say:"반죽 그릇을 기울여 컵에 부어요",praise:"좋아요",build:w=>buildPour(w, IMG.pcJug?"pcJug":(IMG.cupBatter?"cupBatter":"🥣"), IMG.cupEmpty?"cupEmpty":"🧁", {r:"-8%",t:"0%",deg:20,flip:1,big:1}, "반죽 그릇"),card:pcard(["pcJug"],"↻🧁")},  // 거품기 없는 반죽 저그 + 손잡이 쥔 손(팬케이크와 동일)
   {id:3,label:"굽기",text:"오븐에 구워요",say:"단추를 꾹 눌러 노릇하게 구워요",praise:"잘했어요",build:w=>buildBake(w,{fromEmoji:"🧁",toImg:(IMG.cupBaked?"cupBaked":null),toEmoji:"🧁",hint:"🔥 꾹 눌러 구워요"}),card:pcard([],"🔥🧁")},
-  {id:4,label:"크림 짜기",text:"크림을 짜요",say:"크림을 빙글빙글 짜서 올려요",praise:"좋아요",build:w=>buildSqueeze(w,{bottleEmoji:"🌀",foodEmoji:"🧁",foodImg:(IMG.cupBaked?"cupBaked":null),pumps:4,color:"#f7c9d8",hint:"⬇️ 크림을 짜요"}),card:pcard([],"🌀🧁")},
+  {id:4,label:"크림 짜기",text:"크림을 짜요",say:"크림을 빙글빙글 짜서 올려요",praise:"좋아요",build:w=>buildSqueeze(w,{bottleHTML:creamBagHTML(),foodEmoji:"🧁",foodImg:(IMG.cupBaked?"cupBaked":null),pumps:4,color:"#f7c9d8",hint:"⬇️ 크림을 짜요"}),card:pcard([],"🌀🧁")},
   {id:5,label:"뿌리기",text:"토핑을 뿌려요",say:"스프링클을 흔들어 뿌려요",praise:"완성",build:w=>buildShake(w,{content:`<div class="cardemoji" style="font-size:15vmin;">🧁</div>`,need:6,hint:"✨↔️ 흔들어 토핑을 뿌려요"}),card:pcard([],"✨🧁")},
 ];
 (function(){ const d=DISHES.find(x=>x.id==="cupcake"); d.ready=true; d.need=["flour","egg","milk"]; d.steps=CUPCAKE_STEPS;
@@ -827,7 +829,7 @@ function addServeStep(steps, foodFn, cardKeys, emoji){
 }
 addServeStep(SANDWICH_STEPS, ()=>IMG.heroCut?"heroCut":"hero", ["heroCut","hero"], "🥪");
 JUICE_STEPS.push({id:JUICE_STEPS.length+1,label:"따르기",text:"컵에 따라요",say:"주스를 기울여 컵에 따라요",praise:"참 잘했어요",
-  build:w=>buildPour(w, IMG.jBlenderJuice?"jBlenderJuice":"🥤", IMG.jGlass?"jGlass":"🥛"), card:pcard(["jGlass"],"🥤")});
+  build:w=>buildPour(w, IMG.jBlenderJuice?"jBlenderJuice":"🥤", IMG.jGlass?"jGlass":"🥛", null, "믹서기"), card:pcard(["jGlass"],"🥤")});
 addServeStep(PANCAKE_STEPS, ()=>IMG.pcPancake?"pcPancake":"🥞", ["pcPancake"], "🥞");
 addServeStep(SALAD_STEPS, ()=>IMG.saladDone?"saladDone":saladBowlHTML(), ["saladDone"], "🥗");
 addServeStep(HWACHAE_STEPS, ()=>IMG.hwachaeBowl?"hwachaeBowl":"🍹", ["hwachaeBowl"], "🍹");
@@ -850,7 +852,7 @@ const CUSTOM_ACTS={
   fill:{nm:"그릇에 담기",ic:"🥣",text:"그릇에 담아요",say:"재료를 그릇에 담아요",mk:d=>w=>buildSaladFill(w)},
   scoop:{nm:"뜨기",ic:"🥄",text:"떠서 담아요",say:"숟가락으로 떠서 그릇에 담아요",mk:d=>w=>buildScoop(w,{srcEmoji:"🍚",bowlEmoji:"🥣",scoops:3,hint:"🥄 떠서 담아요"})},
   stir:{nm:"젓기",ic:"🔄",text:"골고루 저어요",say:"숟가락으로 골고루 저어요",mk:d=>w=>buildStir(w, saladBowlHTML(), IMG.spoon?"spoon":"🥄", null, false, 45)},
-  pour:{nm:"붓기",ic:"🫗",text:"부어요",say:"기울여서 부어요",mk:d=>w=>buildPour(w,"🥛",d.e)},
+  pour:{nm:"붓기",ic:"🫗",text:"부어요",say:"기울여서 부어요",mk:d=>w=>buildPour(w,"🥛",d.e,null,"통")},
   rub:{nm:"바르기",ic:"🧈",text:"골고루 발라요",say:"골고루 문질러 발라요",mk:d=>w=>rubMix(w,`<div class="cardemoji" style="font-size:20vmin;">${d.e}</div>`,`<div style="position:absolute;inset:22% 20%;border-radius:20%;background:radial-gradient(circle,rgba(255,250,230,.9),rgba(255,250,230,.4) 70%);"></div>`,"👆↔️ 골고루 발라요")},
   squeeze:{nm:"짜기",ic:"🥫",text:"소스를 짜요",say:"꾹꾹 눌러 소스를 짜요",mk:d=>w=>buildSqueeze(w,{bottleEmoji:"🥫",foodEmoji:d.e,pumps:4,hint:"👆 꾹꾹 눌러 짜요"})},
   shake:{nm:"뿌리기",ic:"✨",text:"흔들어 뿌려요",say:"좌우로 흔들어 뿌려요",mk:d=>w=>buildShake(w,{content:`<div class="cardemoji" style="font-size:15vmin;">${d.e}</div>`,need:6,hint:"✨↔️ 흔들어 뿌려요"})},
@@ -1046,7 +1048,7 @@ function renderStep(){
   show("s-step"); setHead(null); band();
   cookT0=Date.now();   // 단계 시작 시각(최소 3초 보장용)
   const s=STEPS[stepIdx];
-  document.getElementById("g-text").textContent=s.text;
+  document.getElementById("g-text").textContent=s.text; fitText(document.getElementById("g-text"));
   document.getElementById("g-say").onclick=()=>say(s.say);
   say(s.say);
   const w=document.getElementById("work"); w.innerHTML="";
@@ -1444,13 +1446,13 @@ function buildStir(w, vessel, tool, from, toolFade, toolDeg){
   act.addEventListener("pointerup",up);act.addEventListener("pointercancel",up);
 }
 /* 2) 붓기 — 기울이는 각도(각도 차용). grip={r,t,deg,flip,base,big} — 손잡이 위치·손 반전·그림 기본각·큰 팬 */
-function buildPour(w, bottle, target, grip){
-  grip=grip||{r:"6%",t:"36%",deg:0};
+function buildPour(w, bottle, target, grip, name){
+  grip=grip||{r:"6%",t:"36%",deg:0}; name=name||"주전자";
   const cupW=grip.big?"clamp(280px,52vmin,560px)":"clamp(200px,40vmin,440px)";  // 팬(대상) 크게 — big이면 2배급
   w.innerHTML=povStage(`
     <div class="povfood" id="cup" style="width:${cupW};height:${cupW};top:${grip.big?62:56}%;">${gart(target||"🍳")}<div id="fill"></div></div>
     <div class="tool" id="bottle" style="left:${grip.big?59:36}%;top:14%;width:clamp(130px,26vmin,290px);height:clamp(130px,26vmin,290px);transform:translate(-50%,-50%);transform-origin:64% 82%;transition:transform .18s ease-out;"><div style="position:relative;transform:rotate(${grip.base||0}deg);">${gart(bottle||"🥛")}<div style="position:absolute;right:${grip.r};top:${grip.t};z-index:3;pointer-events:none;">${gripHand(grip.deg,"8vmin",grip.flip)}</div></div></div>
-    <div id="stream"></div>`, "🫗 주전자를 잡아 그릇 위로 가져가요");
+    <div id="stream"></div>`, `🫗 ${name}를 잡아 그릇 위로 가져가요`);
   const pov=w.querySelector(".pov"),act=w.querySelector("#act"),bot=w.querySelector("#bottle"),
         fill=w.querySelector("#fill"),stream=w.querySelector("#stream"),cup=w.querySelector("#cup"),
         hintEl=w.querySelector(".povhint");
@@ -1604,6 +1606,10 @@ function ketchupBottleHTML(){
     <div style="width:6.6vmin;height:10vmin;background:linear-gradient(90deg,#c62f24,#ef5044 45%,#b02419);border:.4vmin solid #7e1a12;border-radius:2vmin 2vmin 1.2vmin 1.2vmin;display:flex;align-items:center;justify-content:center;"><span style="font-size:3.2vmin;">🍅</span></div>
     <div style="width:2.4vmin;height:2.6vmin;background:#fff;border:.35vmin solid #7e1a12;border-top:none;border-radius:0 0 42% 42%;"></div></div>`;
 }
+function creamBagHTML(){ if(IMG.creamBag) return `<img src="${IMG.creamBag}" style="width:9vmin;display:block;">`;
+  return `<div style="display:flex;flex-direction:column;align-items:center;">
+    <div style="width:0;height:0;border-left:4.5vmin solid transparent;border-right:4.5vmin solid transparent;border-top:11vmin solid #fff;filter:drop-shadow(0 0 .3vmin #c9b9a8);"></div>
+    <div style="width:2vmin;height:2.4vmin;background:#f7c9d8;border:.3vmin solid #c98aa3;border-top:none;border-radius:0 0 40% 40%;margin-top:-.2vmin;"></div></div>`; }
 function buildSqueeze(w, opts){ opts=opts||{};
   const pumps=opts.pumps||4, hint=opts.hint||"⬇️ 아래로 짜요", color=opts.color||"#e0392b";
   const foodArt = opts.foodHTML || (opts.foodImg&&IMG[opts.foodImg]?`<img src="${IMG[opts.foodImg]}" style="width:100%;display:block;">`:`<div class="cardemoji" style="font-size:20vmin;">${opts.foodEmoji||"🌭"}</div>`);
@@ -1801,7 +1807,7 @@ function finishCooking(){
   document.getElementById("band").classList.add("hide"); setHead(null);
   show("s-done");
   const dn=currentDish?currentDish.nm:"샌드위치";
-  document.getElementById("done-title").textContent=dn+"를 완성했어요!";
+  document.getElementById("done-title").textContent=dn+"를 완성했어요!"; fitText(document.getElementById("done-title"));
   const art=(currentDish&&currentDish.done)?currentDish.done():wholeSandwich();
   document.getElementById("hero-done").innerHTML=`<div style="width:clamp(260px,48vmin,460px);display:flex;justify-content:center;">${art}</div>`;
   SND.clap(); say(dn+"를 완성했어요! 정말 잘했어요.");

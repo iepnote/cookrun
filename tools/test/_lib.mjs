@@ -19,6 +19,11 @@ export async function openApp(opts = {}) {
   await page.evaluate(s => Object.assign(window.__T.SET, s), set);
   return { browser, page, errors };
 }
+// 실패해도 브라우저를 닫는다 (안 닫으면 node --test 가 멈춤)
+export async function withApp(opts, fn) {
+  const app = await openApp(opts);
+  try { await fn(app); } finally { await app.browser.close(); }
+}
 export const screen = page => page.evaluate(() => window.__T.screen());
 export async function clickNext(page, n = 1) { for (let i = 0; i < n; i++) { await page.click('#nav-next'); await page.waitForTimeout(250); } }
 export async function goDish(page, name) {            // 시작 → (주문 건너뜀) → 요리 고르기 → 레시피 확인 화면까지
