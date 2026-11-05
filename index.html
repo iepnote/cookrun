@@ -72,6 +72,11 @@
   .chefrow{display:flex;gap:2vmin;flex-wrap:wrap;justify-content:center;} #chefs{flex-direction:column;align-items:center;gap:1vmin;position:relative;z-index:2;}
   .chef{display:flex;flex-direction:column;align-items:center;gap:.4vmin;cursor:pointer;padding:1.6vmin 1.4vmin .6vmin;border-radius:2vmin;border:.5vmin solid transparent;}
   .chef.sel{border-color:var(--accent);background:rgba(255,255,255,.6);}
+  /* 손님 주문 */
+  .orderbubble{display:flex;flex-direction:column;align-items:center;gap:1vmin;background:#fffdf8;border:.5vmin solid var(--line);border-radius:3vmin;padding:2vmin 3vmin;box-shadow:0 .6vmin 1.6vmin rgba(0,0,0,.12);position:relative;}
+  .orderbubble:before{content:"";position:absolute;left:-2.2vmin;top:50%;border:1.2vmin solid transparent;border-right:1.4vmin solid #fffdf8;transform:translateY(-50%);}
+  #headcust{position:fixed;top:8.6vmin;left:calc(50% - var(--titleW)/2 - 9vmin);z-index:26;}
+  .card .cardemoji{font-size:8vmin;width:100%;height:100%;}
   /* 모달 */
   .modal-back{position:fixed;inset:0;background:rgba(0,0,0,.42);z-index:200;
     display:none;align-items:center;justify-content:center;}
@@ -370,12 +375,18 @@
   </div>
   <div id="band" class="hide"></div>
   <div id="headline"></div>
+  <div id="headcust" style="display:none;"></div>
 
   <section class="screen on" id="s-start">
     <div class="title">요리를 만들어요</div>
     <div id="chefs" style="display:none;"></div>
     <div id="hero-start" style="display:flex;justify-content:center;width:100%;"></div>
     <button class="big-btn" id="btn-start">시작하기</button>
+  </section>
+
+  <section class="screen" id="s-order">
+    <div id="orderbox" style="display:flex;gap:4vmin;align-items:center;justify-content:center;flex-wrap:wrap;"></div>
+    <button class="big-btn" id="order-ok">좋아요!</button>
   </section>
 
   <section class="screen" id="s-select">
@@ -659,7 +670,8 @@ function pickVoice(){
   const score=v=>(natural(v)?4:0)+(want.test(v.name)?2:0)+(/ko[-_]?KR/i.test(v.lang)?1:0);
   return vs.slice().sort((a,b)=>score(b)-score(a))[0];
 }
-function say(t){ lastSay=t; if(SET.vol<=0||!SET.tts)return; try{ speechSynthesis.cancel();
+const SAYS=[];   // 최근 음성 문장(테스트·디버그용)
+function say(t){ lastSay=t; SAYS.push(t); if(SAYS.length>30)SAYS.shift(); if(SET.vol<=0||!SET.tts)return; try{ speechSynthesis.cancel();
   const u=new SpeechSynthesisUtterance(t); u.lang="ko-KR"; u.rate=.97;
   u.pitch = SET.voice==="male"?0.9:1.0; u.volume=Math.min(1,SET.vol+0.1);
   const v=pickVoice(); if(v)u.voice=v;
@@ -667,7 +679,7 @@ function say(t){ lastSay=t; if(SET.vol<=0||!SET.tts)return; try{ speechSynthesis
 try{speechSynthesis.onvoiceschanged=()=>{};}catch(e){}
 
 /* 화면/안내박스 */
-function show(id){SND.stopAll();document.querySelectorAll(".screen").forEach(s=>s.classList.toggle("on",s.id===id));}
+function show(id){SND.stopAll(); if(id!=="s-select"){const hc=document.getElementById("headcust"); if(hc)hc.style.display="none";} document.querySelectorAll(".screen").forEach(s=>s.classList.toggle("on",s.id===id));}
 function curScreen(){const s=document.querySelector(".screen.on");return s?s.id:"";}
 function fitText(el){ if(!el)return; el.classList.toggle("longtxt",(el.textContent||"").length>14); }
 function setHead(t){const h=document.getElementById("headline"); if(t){h.textContent=t;h.style.display="block";fitText(h);} else h.style.display="none";}
@@ -778,6 +790,55 @@ function renderChoose(){ show("s-step"); setHead(null); band(); ghostClear();
   w.innerHTML=`<div id="choose" style="display:flex;gap:4vmin;align-items:flex-start;justify-content:center;">`+cards.map(c=>`<div class="ccard" data-ok="${c.ok}" style="cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:.8vmin;"><div class="card" style="cursor:pointer;">${c.s.card()}</div><div class="nm">${c.s.label}</div></div>`).join("")+`</div>`;
   w.querySelectorAll(".ccard").forEach(el=>el.onclick=()=>{ if(el.dataset.ok==="1"){ SND.good(); CHOSEN_OK[stepIdx]=true; setTimeout(renderStep,500); }
     else { el.classList.remove("shake"); void el.offsetWidth; el.classList.add("shake"); beep(200,.12,"sine",.18); say("아니에요. 순서를 다시 보세요."); w.querySelector('[data-ok="1"] .card').classList.add("hintglow"); } }); }
+
+/* ===== 손님 (설계 §5) — 주문 화면, 주기(먹이기) 단계. 사진 손님은 localStorage cookrun_customers ===== */
+const CUSTOMERS=[{id:"c1",nm:"친구",e:"👧"},{id:"c2",nm:"친구",e:"👦"},{id:"c3",nm:"선생님",e:"👩‍🏫"},{id:"c4",nm:"할머니",e:"👵"},{id:"c5",nm:"곰",e:"🐻"},{id:"c6",nm:"토끼",e:"🐰"}];
+function custLoad(){ try{return JSON.parse(localStorage.getItem("cookrun_customers")||"[]");}catch(_){return [];} }
+function custSave(a){ try{localStorage.setItem("cookrun_customers",JSON.stringify(a));}catch(_){ say("저장 공간이 가득 찼어요."); } }
+function custList(){ return CUSTOMERS.concat(custLoad().map((c,i)=>({id:"cu"+i,nm:c.nm,img:c.img}))); }
+/* 손님 얼굴 — 사진 > IMG.cust_<id>(_happy) > 이모지 */
+function custFace(c,happy,sz){ sz=sz||"var(--sz-food)"; const k="cust_"+c.id+(happy?"_happy":"");
+  if(c.img) return `<img src="${c.img}" style="width:${sz};height:${sz};object-fit:cover;border-radius:50%;display:block;${happy?'filter:brightness(1.08);':''}">`;
+  const im=IMG[k]||IMG["cust_"+c.id]; if(im) return `<img src="${im}" style="width:${sz};height:${sz};object-fit:contain;display:block;">`;
+  return `<div style="width:${sz};height:${sz};display:flex;align-items:center;justify-content:center;font-size:calc(${sz}*.7);line-height:1;">${happy?"😋":(c.e||"🙂")}</div>`; }
+let ORDER=null;
+function pickOrder(){ const p=PROF.cur(); const pool=[]; DISHES.filter(d=>d.ready).forEach(d=>{ pool.push(d); if(!(p&&p.stamps&&p.stamps[d.id]))pool.push(d); });
+  const cs=custList(); return {cust:cs[Math.floor(Math.random()*cs.length)], dish:pool[Math.floor(Math.random()*pool.length)]}; }
+function showOrder(keep){ if(!keep||!ORDER)ORDER=pickOrder(); setHead("손님이 왔어요"); document.getElementById("band").classList.add("hide"); show("s-order");
+  const d=ORDER.dish; const art=d.custom&&d.img?`<img src="${d.img}" style="width:14vmin;height:14vmin;object-fit:cover;border-radius:1.6vmin;">`:(d.done?`<div style="width:18vmin;">${d.done()}</div>`:`<div class="cardemoji" style="font-size:12vmin;">${d.e}</div>`);
+  document.getElementById("orderbox").innerHTML=`<div style="text-align:center;">${custFace(ORDER.cust,false)}<div class="nm">${ORDER.cust.nm}</div></div>
+    <div class="orderbubble">${art}<div class="guide" style="width:auto;max-width:60vw;">${d.nm} 주세요!</div></div>`;
+  say("안녕하세요. 저는 "+d.nm+"를 주문할게요."); }
+function renderCustomers(){ const el=document.getElementById("set-customers"); if(!el)return; const arr=custLoad();
+  el.innerHTML=`<div class="m-row"><span>🙂 사진 손님 <small style="font-weight:600;opacity:.6;">(기본 손님 6명에 더해요)</small></span><div class="edrow">`+(arr.length?arr.map((c,i)=>`<div class="edchip sel" data-ci="${i}"><img class="edthumb" style="width:5vmin;height:5vmin;" src="${c.img}">${c.nm} ✕</div>`).join(""):`<span style="opacity:.5;">아직 없어요</span>`)+`</div>
+    <div class="edrow" style="margin-top:1vmin;"><input id="cu-nm" class="edin" placeholder="손님 이름" style="flex:1;min-width:16vmin;"><label class="edchip">📷 사진<input id="cu-img" type="file" accept="image/*" hidden></label><button class="big-btn sm" id="cu-add">추가</button></div></div>`;
+  let photo=null; el.querySelector("#cu-img").onchange=e=>{const f=e.target.files[0]; if(f)fileToData(f,320,u=>{photo=u; SND.pop();});};
+  el.querySelector("#cu-add").onclick=()=>{ const nm=el.querySelector("#cu-nm").value.trim(); if(!nm){say("손님 이름을 적어요.");return;} if(!photo){say("사진을 골라요.");return;} if(arr.length>=8){say("사진 손님은 여덟 명까지예요.");return;} arr.push({nm,img:photo}); custSave(arr); SND.pop(); renderCustomers(); };
+  el.querySelectorAll("[data-ci]").forEach(c=>c.onclick=()=>{ if(confirm("지울까요?")){ arr.splice(+c.dataset.ci,1); custSave(arr); renderCustomers(); } }); }
+/* 주기 — 접시를 손님(또는 나) 앞에 놓고 음식을 눌러 먹이기 */
+function buildGive(w){
+  const p=PROF.cur(); const useCust=!!(SET.order&&ORDER);
+  const who=useCust?ORDER.cust:{id:"me",nm:(p&&p.id!=="anon")?p.name:"나",img:p?p.photo:null,e:"😋"};
+  const foodHTML=currentDish&&currentDish.done?currentDish.done():wholeSandwich();
+  w.innerHTML=`<div class="cookrow" id="board" style="gap:6vmin;">
+    <div class="drag hintglow" id="giveplate" style="position:relative;left:0;top:0;width:var(--sz-vessel);z-index:5;">${IMG.plate?`<img src="${IMG.plate}" style="width:100%;display:block;">`:""}<div id="givefood" style="position:absolute;left:18%;right:18%;top:2%;bottom:22%;display:flex;align-items:center;justify-content:center;transition:transform .3s;cursor:pointer;">${foodHTML}</div></div>
+    <div style="position:relative;text-align:center;"><div id="custface">${custFace(who,false)}</div><div class="nm">${who.nm}</div>
+      <div id="custspot" class="target-out hintglow" style="position:relative;width:var(--sz-vessel);height:12vmin;border-radius:50%;margin-top:1vmin;"></div></div>
+    <div class="bubblehint" id="givehint" style="top:-6vmin;">${useCust?"🍽️ 접시를 손님 앞에 놓아요":"🍽️ 접시를 내 앞에 놓아요"}</div></div>`;
+  const plate=w.querySelector("#giveplate"),spot=w.querySelector("#custspot"),food=w.querySelector("#givefood"),face=w.querySelector("#custface"),hint=w.querySelector("#givehint");
+  const bites=N(3); let served=false,cnt=0,done=false;
+  plate.addEventListener("pointerdown",e=>{ if(served&&!e.target.closest("#givefood"))e.stopImmediatePropagation(); },true);   // 놓은 뒤엔 접시 끌기 금지
+  drag(plate,null,()=>{ if(served)return; if(overlaps(plate,spot)){ served=true; SND.pop(); snapTo(plate,spot,-window.innerHeight*0.06); spot.style.visibility="hidden"; plate.classList.remove("hintglow");
+      face.innerHTML=custFace(who,true); hint.textContent="😋 음식을 눌러 먹여요 ("+bites+"번)"; say(useCust?"와, 맛있겠다! 음식을 눌러 먹여요.":"냠냠, 먹어요. 음식을 눌러요."); }
+    else { plate.style.transition="transform .2s"; plate.style.transform=""; setTimeout(()=>plate.style.transition="",200); } });
+  food.addEventListener("pointerdown",e=>{ if(!served||done)return; e.stopPropagation(); cnt++; SND.nom(); vib(15); sparkle(w.querySelector("#board"));
+    const sc=Math.max(0,1-cnt/bites); food.style.transform=`translateX(6vmin) scale(${sc})`; setTimeout(()=>{ food.style.transform=`scale(${sc})`; },160);
+    if(cnt>=bites){ done=true; setTimeout(()=>{ food.innerHTML=""; hearts(w.querySelector("#board")); SND.clap(); say("맛있어요! 고마워요!"); setTimeout(succeed,400); },300); } });
+}
+function hearts(host){ if(!host)return; for(let i=0;i<6;i++){ const h=document.createElement("div"); h.className="sparkle"; h.textContent="💗"; h.style.left=(55+Math.random()*30)+"%"; h.style.top=(30+Math.random()*30)+"%"; host.appendChild(h);
+  requestAnimationFrame(()=>{h.style.transform="translateY(-12vmin) scale(1.6)";h.style.opacity="0";}); setTimeout(()=>h.remove(),700); } }
+function addGiveStep(steps){ steps.push({id:steps.length+1,label:"주기",text:"손님에게 드려요",say:"완성한 요리를 손님에게 드려요",praise:"참 잘했어요",build:buildGive,
+  card:()=>IMG.cardGive?`<img src="${IMG.cardGive}" class="gimg">`:`<div class="cardemoji">🍽️➡️😋</div>`}); }
 
 /* 데이터 — 모든 재료 img 키 부여(이미지 없으면 이모지) */
 const PANTRY={
@@ -971,6 +1032,7 @@ addServeStep(HOTDOG_STEPS, ()=>IMG.hotdog?"hotdog":"🌭", ["hotdog"], "🌭");
 addServeStep(PIZZA_STEPS, ()=>IMG.pizzaDone?"pizzaDone":"🍕", ["pizzaDone"], "🍕");
 addServeStep(CUPCAKE_STEPS, ()=>IMG.cupDone?"cupDone":(IMG.cupBaked?"cupBaked":"🧁"), ["cupDone","cupBaked"], "🧁");
 addServeStep(CANAPE_STEPS, ()=>IMG.canapeDone?"canapeDone":"🫓", ["canapeDone"], "🫓");
+[SANDWICH_STEPS,JUICE_STEPS,PANCAKE_STEPS,SALAD_STEPS,HWACHAE_STEPS,YOGURTBOWL_STEPS,RICEBALL_STEPS,HOTDOG_STEPS,PIZZA_STEPS,CUPCAKE_STEPS,CANAPE_STEPS].forEach(addGiveStep);   // 모든 요리 마지막 = 주기
 
 /* ===== 교사용 '새 요리 만들기' 편집기 — 선택 화면 ➕에서 진입, localStorage 저장 =====
    과정은 기존 제스처 툴킷 14종을 조합. 마지막 '접시에 담기'는 자동으로 붙음.
@@ -1024,7 +1086,7 @@ function makeCustomDish(c,idx){
     const A=CUSTOM_ACTS[a.a];
     return {id:j+1,label:A.nm,text:a.text||A.text,say:a.text||A.say,praise:"잘했어요",build:A.mk(d),card:()=>`<div class="cardemoji">${A.ic}</div>`}; });
   const foodHTML=()=> d.img?`<img src="${d.img}" style="width:100%;height:100%;object-fit:contain;border-radius:2vmin;">`:`<div class="cardemoji" style="font-size:16vmin;">${d.e}</div>`;
-  addServeStep(d.steps, foodHTML, [], d.e);
+  addServeStep(d.steps, foodHTML, [], d.e); addGiveStep(d.steps);
   d.done=()=> d.img?`<img src="${d.img}" style="max-width:100%;max-height:56vmin;display:block;margin:0 auto;border-radius:2.4vmin;">`:`<div class="cardemoji" style="font-size:clamp(120px,30vmin,320px);">${d.e}</div>`;
   return d;
 }
@@ -1982,8 +2044,9 @@ function startReview(){
 /* 요리 고르기 */
 let EDITMODE=false;
 function showSelect(){ ac(); chosen=[];stepIdx=0;
-  document.getElementById("band").classList.add("hide"); setHead("무엇을 만들까요?");
+  document.getElementById("band").classList.add("hide"); setHead(ORDER&&SET.order?ORDER.dish.nm+"를 만들어요":"무엇을 만들까요?");
   show("s-select");
+  const hc=document.getElementById("headcust"); if(ORDER&&SET.order){ hc.innerHTML=custFace(ORDER.cust,false,"8vmin"); hc.style.display="block"; } else hc.style.display="none";
   const g=document.getElementById("grid");g.innerHTML="";
   DISHES.forEach(d=>{const el=document.createElement("div");
     el.className="dish"+(d.ready?"":" soon")+(d.custom?" custom":"");
@@ -1995,10 +2058,12 @@ function showSelect(){ ac(); chosen=[];stepIdx=0;
         else if(confirm("'"+d.nm+"'을(를) 내 요리로 복제해서 편집할까요?\n(기본 요리는 그대로 남아요)")){
           const cfg={nm:d.nm+" (내 요리)", e:d.e,
             need:(d.need||[]).filter(k=>PANTRY[k]).slice(0,12),
-            acts:(d.steps||[]).slice(0,-1).map(s=>({a:matchAct(s.say||s.text)||"show", text:s.text}))};
+            acts:(d.steps||[]).slice(0,-2).map(s=>({a:matchAct(s.say||s.text)||"show", text:s.text}))};
           showEditor(cfg, null); }
         return; }
+      if(ORDER&&SET.order&&d.ready&&d.id!==ORDER.dish.id){ el.classList.remove("shake"); void el.offsetWidth; el.classList.add("shake"); beep(200,.12,"sine",.18); say("손님은 "+ORDER.dish.nm+"를 주문했어요."); return; }
       if(d.ready){showRecipe(d);} else {say(d.nm+"은 아직 준비중이에요.");} };
+    if(ORDER&&SET.order&&d.id===ORDER.dish.id&&LV().hint) el.classList.add("hintglow");
     if(d.custom){ const del=document.createElement("div"); del.className="delbadge"; del.textContent="🗑";   // 교사 제작 요리: 눌러서 삭제
       del.onclick=ev=>{ ev.stopPropagation(); SND.pop();
         if(confirm("'"+d.nm+"' 요리를 지울까요?")){ const arr=customLoad(); arr.splice(+d.id.slice(6),1);
@@ -2018,7 +2083,7 @@ function showSelect(){ ac(); chosen=[];stepIdx=0;
   modeBtn.textContent=EDITMODE?"✏️ 편집 중 — 요리를 눌러 고쳐요":"✏️";
   modeBtn.onclick=()=>{ EDITMODE=!EDITMODE; SND.pop(); say(EDITMODE?"편집 모드예요. 고칠 요리를 눌러요.":"편집 모드를 껐어요."); showSelect(); };
   g.appendChild(modeBtn);
-  say("무엇을 만들까요? 요리를 골라요.");
+  say(ORDER&&SET.order?ORDER.dish.nm+"를 골라요.":"무엇을 만들까요? 요리를 골라요.");
 }
 
 /* 장바구니 */
@@ -2164,7 +2229,7 @@ function buildSettings(){
   wire("set-voice","voice",()=>say(SET.voice==="male"?"남자 목소리예요.":"여자 목소리예요."));
   wire("set-fs","fs",()=>document.documentElement.style.setProperty("--fsx",SET.fs));
   wire("set-order","order",()=>say(SET.order?"손님 주문을 켰어요.":"손님 주문을 껐어요."));
-  renderStudents();
+  renderStudents(); renderCustomers();
 }
 document.getElementById("nav-set").onclick=()=>{ buildSettings(); document.getElementById("settings").classList.add("on"); };
 document.getElementById("set-close").onclick=()=>document.getElementById("settings").classList.remove("on");
@@ -2183,6 +2248,7 @@ document.getElementById("nav-next").onclick=()=>{
   const s=curScreen();
   if(s==="s-step"){ if(stepIdx<STEPS.length-1){stepIdx++;renderStep();} else goPrep("after"); }
   else if(s==="s-start"){ document.getElementById("btn-start").click(); }
+  else if(s==="s-order"){ document.getElementById("order-ok").click(); }
   else if(s==="s-select"){ SND.pop(); say("먼저 요리를 골라요."); }
   else if(s==="s-intro"){ openCart(currentDish); }
   else if(s==="s-cart"){ const cd=document.getElementById("cart-done"); if(cd&&cd.style.display!=="none"&&!cd.disabled){ cd.onclick(); } else { SND.pop(); say("재료를 담아요."); } }
@@ -2198,7 +2264,8 @@ document.getElementById("nav-prev").onclick=()=>{
   else if(s==="s-prep"){ openCart(currentDish); }
   else if(s==="s-done"){ stepIdx=STEPS.length-1; renderStep(); }
   else if(s==="s-review"){ finishCooking(); }
-  else if(s==="s-select"){ setHead(null); show("s-start"); }
+  else if(s==="s-select"){ if(SET.order&&ORDER)showOrder(true); else { setHead(null); show("s-start"); } }
+  else if(s==="s-order"){ setHead(null); show("s-start"); }
   else if(s==="s-edit"){ showSelect(); }
 };
 
@@ -2208,7 +2275,8 @@ function applyAssets(){
   if(IMG.washimg) document.getElementById("washimg").src=IMG.washimg;
   document.getElementById("hero-start").innerHTML=`<img class="base" src="${IMG.hero}" style="position:absolute;left:34.0%;top:30.5%;width:29.2%;">`;
 }
-document.getElementById("btn-start").onclick=()=>{ showSelect(); };
+document.getElementById("btn-start").onclick=()=>{ if(SET.order)showOrder(); else { ORDER=null; showSelect(); } };
+document.getElementById("order-ok").onclick=()=>{ SND.pop(); showSelect(); };
 document.getElementById("nav-home").onclick=()=>{chosen=[];stepIdx=0;document.getElementById("band").classList.add("hide");setHead(null);show("s-start");};
 document.getElementById("nav-full").onclick=()=>{const d=document.documentElement;
   if(!document.fullscreenElement){(d.requestFullscreen||d.webkitRequestFullscreen||function(){}).call(d);}
@@ -2290,15 +2358,15 @@ document.getElementById("g-say").onclick=()=>say(STEPS[stepIdx].say);
 
 /* ===== 테스트 훅 ===== */
 window.__T={ get STEPS(){return STEPS;}, get stepIdx(){return stepIdx;}, get chosen(){return chosen;},
-  get currentDish(){return currentDish;}, DISHES, PANTRY, SET, IMG, SND, PROF, LV, N, screen:()=>curScreen(), lastSay:()=>lastSay };
+  get currentDish(){return currentDish;}, DISHES, PANTRY, SET, IMG, SND, PROF, LV, N, ORDER:()=>ORDER, says:()=>SAYS.slice(), screen:()=>curScreen(), lastSay:()=>lastSay };
 applyAssets(); renderChefs(); renderNavChef();
 window.addEventListener("load",()=>setTimeout(()=>say("요리를 만들어요. 시작 단추를 눌러요."),500));
 
-console.assert(SANDWICH_STEPS.length===6,"샌드위치 6단계(담기 포함)");
-console.assert(JUICE_STEPS.length===6,"주스 6단계(따르기 포함)");
+console.assert(SANDWICH_STEPS.length===7,"샌드위치 7단계(담기·주기 포함)");
+console.assert(JUICE_STEPS.length===7,"주스 7단계(따르기·주기 포함)");
 console.assert(DISHES.length>=10,"요리 10개 이상");
-console.assert(PANCAKE_STEPS.length===6,"팬케이크 6단계(담기 포함)");
-console.assert(RICEBALL_STEPS.length===3,"주먹밥 3단계(담기 포함)");
+console.assert(PANCAKE_STEPS.length===7,"팬케이크 7단계(담기·주기 포함)");
+console.assert(RICEBALL_STEPS.length===4,"주먹밥 4단계(담기·주기 포함)");
 console.assert(DISHES.filter(d=>d.ready).length===11,"완성 요리 11종(전부 ready)");
 console.assert(DISHES.every(d=>d.steps&&d.steps.length&&typeof d.done==="function"),"모든 요리 steps·done 보유");
 console.assert(["hwachae","yogurt","riceball","hotdog","pizza","cupcake","canape"].every(id=>DISHES.find(d=>d.id===id).ready),"신규 7종 ready");
