@@ -18,7 +18,8 @@
     --bg:#f4efe6; --panel:#fffdf8; --ink:#3a3128; --soft:#7a6f60;
     --accent:#7bae7f; --accent-d:#5d8f63; --hi:#ffd56b; --line:#e3d9c8;
     --pad:2.2vmin; --gap:2vmin; --r:2.4vmin; --fz:clamp(18px,3.4vmin,46px); --fsx:1;
-    --plateW:clamp(430px,73vmin,830px);   /* 접시 30% 크게(요리 내내 고정) */
+    /* 크기 토큰 — 손:도구:음식:그릇 = 1:2:3:5 (설계 §1-1) */
+    --sz-hand:10vmin; --sz-tool:20vmin; --sz-knife:36vmin; --sz-food:30vmin; --sz-ing:16vmin; --sz-vessel:50vmin; --sz-bit:5vmin;
     --titleW:clamp(380px,62vmin,820px);   /* 타이틀 박스 고정 크기(글자수 무관) */
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
@@ -135,9 +136,10 @@
   .toast.show{opacity:1;transform:translateX(-50%) scale(1);}
 
   /* 접시 무대(통일 크기) */
-  .plate-stage{position:relative;width:var(--plateW);}
+  .plate-stage{position:relative;width:var(--sz-vessel);}
+  .toolstart{position:absolute;right:4%;bottom:4%;z-index:40;touch-action:none;}
   .plate-stage>img.plate{width:100%;display:block;}
-  .sand{position:absolute;left:8%;right:8%;width:84%;bottom:28%;}
+  .sand{position:absolute;left:20%;right:20%;width:60%;bottom:28%;}
   .sand>img.base{width:100%;display:block;}
   /* 재료는 식빵보다 10% 작게(가로 90%), 차곡차곡 겹치도록 얇은 높이 */
   .sand>img.lyr{position:absolute;object-fit:contain;object-position:center bottom;}  /* 재료별 자연 비율(왜곡 없음) — 크기·위치는 lyrHTML()이 재료별로 지정 */
@@ -162,12 +164,12 @@
     font-size:calc(clamp(18px,3.6vmin,40px)*var(--fsx));color:var(--ink);
     text-shadow:0 .3vmin 0 #fff,0 0 1.4vmin #fff;white-space:nowrap;pointer-events:none;}
   .povfood{position:absolute;left:50%;top:46%;transform:translate(-50%,-50%);z-index:3;line-height:1;
-    width:clamp(170px,34vmin,380px);height:clamp(170px,34vmin,380px);font-size:clamp(120px,28vmin,300px);
+    width:var(--sz-food);height:var(--sz-food);font-size:clamp(120px,28vmin,300px);
     display:flex;align-items:center;justify-content:center;text-align:center;}
   .povfood>.cardemoji{position:absolute;inset:0;font-size:.36em;transition:transform .06s;}
   .gimg{width:100%;height:100%;object-fit:contain;display:block;filter:drop-shadow(0 1vmin 1vmin rgba(0,0,0,.18));}
   .tool{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:5;
-    width:clamp(80px,17vmin,200px);height:clamp(80px,17vmin,200px);font-size:clamp(70px,16vmin,180px);
+    width:var(--sz-tool);height:var(--sz-tool);font-size:clamp(70px,16vmin,180px);
     display:flex;align-items:center;justify-content:center;will-change:transform;pointer-events:none;}
   #ring{position:absolute;left:50%;top:46%;width:28vmin;height:28vmin;transform:translate(-50%,-50%);
     border:.6vmin dashed var(--accent);border-radius:50%;opacity:.55;z-index:2;pointer-events:none;}
@@ -636,16 +638,18 @@ function snapTo(d,t,dy){const tr=t.getBoundingClientRect(),dr=d.getBoundingClien
 function toast(msg){const t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");
   setTimeout(()=>t.classList.remove("show"),1100);}
 /* 손 연출(공용) — 도구 쥔 손(✊)/재료 잡는 손(✋). 그림(handGrip/handHold) 넣으면 자동 교체 */
-function gripHand(deg,sz,flip){ const s=sz||"7vmin", t=`rotate(${deg||0}deg)${flip?" scaleX(-1)":""}`;
-  return IMG.handGrip?`<img src="${IMG.handGrip}" style="width:calc(${s}*1.7);transform:${t};display:block;">`
-    :`<span style="font-size:${s};line-height:1;display:inline-block;transform:${t};">✊</span>`; }
-function holdHand(deg,sz,flip){ const s=sz||"10vmin", t=`rotate(${deg||0}deg)${flip?" scaleX(-1)":""}`;
-  return IMG.handHold?`<img src="${IMG.handHold}" style="width:calc(${s}*1.7);transform:${t};display:block;">`
-    :`<span style="font-size:${s};line-height:1;display:inline-block;transform:${t};">✋</span>`; }
+/* 손 크기는 토큰 --sz-hand 하나로 고정(설계 §1-4). 두 번째 인자는 하위 호환용으로 무시 */
+function handWrap(inner){ return `<span data-hand style="display:inline-block;line-height:0;">${inner}</span>`; }
+function gripHand(deg,_sz,flip){ const s="var(--sz-hand)", t=`rotate(${deg||0}deg)${flip?" scaleX(-1)":""}`;
+  return handWrap(IMG.handGrip?`<img src="${IMG.handGrip}" style="width:${s};transform:${t};display:block;">`
+    :`<span style="font-size:${s};line-height:1;display:inline-block;transform:${t};">✊</span>`); }
+function holdHand(deg,_sz,flip){ const s="var(--sz-hand)", t=`rotate(${deg||0}deg)${flip?" scaleX(-1)":""}`;
+  return handWrap(IMG.handHold?`<img src="${IMG.handHold}" style="width:${s};transform:${t};display:block;">`
+    :`<span style="font-size:${s};line-height:1;display:inline-block;transform:${t};">✋</span>`); }
 /* 칼 쥔 손 — 손등이 보이는 전용 그림(handGripBack) 우선, 없으면 쥔 손 */
-function knifeHand(deg,sz){ const s=sz||"8vmin";
-  if(IMG.handGripBack) return `<img src="${IMG.handGripBack}" style="width:calc(${s}*1.9);transform:rotate(${deg||0}deg);display:block;">`;
-  return gripHand(deg,s); }
+function knifeHand(deg,_sz){ const s="var(--sz-hand)";
+  if(IMG.handGripBack) return handWrap(`<img src="${IMG.handGripBack}" style="width:${s};transform:rotate(${deg||0}deg);display:block;">`);
+  return gripHand(deg); }
 
 /* 데이터 — 모든 재료 img 키 부여(이미지 없으면 이모지) */
 const PANTRY={
@@ -1070,7 +1074,7 @@ function buildBread(w){
   </div>`;
   const tray=w.querySelector("#tray"), onp=w.querySelector("#onplate");
   const d=document.createElement("div");d.className="drag tray-item";d.style.position="relative";
-  d.style.width="clamp(150px,26vmin,300px)";
+  d.style.width="calc(var(--sz-ing)*1.3)";
   d.innerHTML=`<img src="${IMG.breadBot}">`;
   tray.appendChild(d);
   drag(d,null,()=>{ const t=w.querySelector("#dropb");
@@ -1085,7 +1089,7 @@ function buildSpread(w){
   const jar=IMG.jamJar, CUT=40;   // CUT=뚜껑/몸통 경계(%): 체크천 아래·유리 입구 위
   const SPOON_DEG=180, JAMSPOON_DEG=0;   // 숟가락 각도(도) — 여기서 조절
   w.innerHTML=`<div class="cookrow">
-    <div id="jarbox" style="position:relative;width:clamp(140px,26vmin,280px);text-align:center;">
+    <div id="jarbox" style="position:relative;width:calc(var(--sz-ing)*1.4);text-align:center;">
       <div style="position:relative;">
       ${jar?`<img id="jarClosed" src="${jar}" style="width:100%;display:block;clip-path:inset(${CUT-0.5}% 0 0 0);transition:opacity .4s;">
              ${IMG.jamJarOpen?`<img id="jarOpen" src="${IMG.jamJarOpen}" style="position:absolute;left:0;bottom:0;width:100%;opacity:0;transition:opacity .4s;">`:""}
@@ -1099,7 +1103,7 @@ function buildSpread(w){
       </div>
     </div>
   </div>
-  <div class="drag hintglow" id="spoon" style="position:fixed;left:20vw;top:34vh;width:clamp(72px,12.8vmin,136px);z-index:40;touch-action:none;">
+  <div class="drag hintglow toolstart" id="spoon" style="width:calc(var(--sz-tool)*.45);">
     <div id="spimg">${IMG.spoon?`<img src="${IMG.spoon}" style="width:100%;transform:rotate(${SPOON_DEG}deg);display:block;">`:`<div style="font-size:9vmin;">🥄</div>`}</div>
   </div>`;
   const spoon=w.querySelector("#spoon"), spimg=w.querySelector("#spimg"), lid=w.querySelector("#lid"),
@@ -1148,7 +1152,7 @@ function buildStack(w){
     const tray=w.querySelector("#tray");
     queue.forEach(k=>{
       const d=document.createElement("div");d.className="drag tray-item";d.style.position="relative";
-      d.style.width="clamp(110px,18vmin,190px)";
+      d.style.width=`calc(var(--sz-ing)*${ING_SZ[k]||1})`;
       d.innerHTML=`<img src="${IMG[ING[k].img]}">`;
       tray.appendChild(d);
       drag(d,null,()=>{ const t=document.getElementById("dropi");
@@ -1170,7 +1174,7 @@ function buildCover(w){
     <div class="sidetray" id="tray"></div>
   </div>`;
   const tray=w.querySelector("#tray");
-  const d=document.createElement("div");d.className="drag tray-item";d.style.position="relative";d.style.width="clamp(150px,26vmin,300px)";
+  const d=document.createElement("div");d.className="drag tray-item";d.style.position="relative";d.style.width="calc(var(--sz-ing)*1.3)";
   d.innerHTML=`<img src="${IMG.breadTop}">`;
   tray.appendChild(d);
   drag(d,null,()=>{ const t=w.querySelector("#dropt");
@@ -1183,11 +1187,11 @@ function buildCover(w){
 
 /* 6) 자르기 — 칼 전체(손잡이 포함) 위에서 아래로 */
 function buildCut(w){
-  w.innerHTML=`<div class="plate-stage" id="board" style="width:var(--plateW);">
+  w.innerHTML=`<div class="plate-stage" id="board">
     <div id="whole" style="position:relative;width:100%;"><img src="${IMG.hero}" style="width:100%;display:block;"></div>
     <div id="hold" style="position:absolute;left:5%;top:46%;z-index:6;transition:transform .1s;">${holdHand(0,"12vmin")}</div>
     <div id="dash" style="position:absolute;left:50%;top:-4%;bottom:-4%;border-left:.9vmin dashed #fff;transform:translateX(-50%);filter:drop-shadow(0 0 .5vmin rgba(0,0,0,.55));"></div>
-    <div class="drag" id="knife" style="left:50%;transform:translateX(-50%);top:-8%;z-index:8;"><div style="position:relative;"><img src="${IMG.knife}" style="height:clamp(300px,64vmin,720px);width:auto;"><div style="position:absolute;left:50%;bottom:8%;transform:translateX(-50%);z-index:2;">${knifeHand(-8,"9vmin")}</div></div></div>
+    <div class="drag" id="knife" style="left:50%;transform:translateX(-50%);top:-8%;z-index:8;"><div style="position:relative;"><img src="${IMG.knife}" style="height:var(--sz-knife);width:auto;"><div style="position:absolute;left:50%;bottom:8%;transform:translateX(-50%);z-index:2;">${knifeHand(-8,"9vmin")}</div></div></div>
   </div>`;
   const knife=w.querySelector("#knife"),hd=w.querySelector("#hold");let dist=0,done=false,ly=null;
   drag(knife,(x,y)=>{ if(done)return; if(ly!==null){const dy=y-ly; if(dy>0)dist+=dy;} ly=y;  // 내리써는 동작만 인정
@@ -1209,8 +1213,11 @@ function splitAnim(w){
 /* ===== 과일 샐러드·주스 (이미지) ===== */
 /* 과일 1개(이미지 또는 이모지) */
 function fcImg(k,sz){ sz=sz||"11vmin"; return IMG[k]?`<img src="${IMG[k]}" style="width:${sz};height:${sz};object-fit:contain;">`:`<span style="font-size:${sz};line-height:1;">${(FRUITS[k]||PANTRY[k]||{e:"🍓"}).e}</span>`; }
-/* 실제 과일 크기 배율(수박>파인애플>…>블루베리) */
-const FRUIT_SZ={watermelon:1.7,pineapple:1.6,melon:1.55,banana:1.25,mango:1.15,apple:1.1,orange:1.05,peach:1.05,kiwi:.85,strawberry:.8,grape:.65,blueberry:.55};
+/* 실제 크기 비율표 — 모든 재료(설계 §1-2). --sz-ing 또는 fsz() 기준값에 곱한다 */
+const ING_SZ={watermelon:1.7,pineapple:1.6,melon:1.55,banana:1.25,mango:1.15,apple:1.1,orange:1.05,peach:1.05,tomato:1.05,
+  kiwi:.85,egg:.85,strawberry:.8,grape:.65,blueberry:.55,bread:1.3,hotdogbun:1.3,milk:1.2,flour:1.2,yogurt2:1.2,
+  lettuce:1.15,ham:1,cheese:1,jam:.9,sausage:.9,carrot:.9,rice:1,fish:1,butter:.9};
+const FRUIT_SZ=ING_SZ;   // 하위 호환
 function fsz(k,base){ const m=(currentDish&&currentDish.sizes&&currentDish.sizes[k])||1;   // 교사 설정 재료별 크기 배수
   return (Math.max(7, base*(FRUIT_SZ[k]||1))*m).toFixed(1)+"vmin"; }  // 최소 7vmin — 작은 과일이 너무 작아지지 않게
 /* 흰 덩이(밥 한 술·요거트 한 스푼) — 그림(riceLump/yogurtBlob) 넣으면 자동 교체 */
@@ -1225,7 +1232,7 @@ function saladBowlHTML(){ return `<div style="position:relative;width:100%;">${j
 function buildSaladFill(w){
   const placed=[],queue=chosen.slice();
   function render(){
-    w.innerHTML=`<div class="cookrow"><div class="plate-stage" style="width:clamp(280px,50vmin,560px);">
+    w.innerHTML=`<div class="cookrow"><div class="plate-stage">
       ${jimg("saladPlate","🥣")}
       <div id="laid" style="position:absolute;left:8%;right:8%;top:8%;height:58%;display:flex;flex-wrap:wrap;gap:.5vmin;align-items:center;justify-content:center;"></div>
       <div id="dropi" class="target-out hintglow" style="left:10%;right:10%;top:8%;height:58%;border-radius:42%;"></div>
@@ -1244,7 +1251,7 @@ function buildSaladFill(w){
   render();
 }
 function rubMix(w, baseHTML, overlayHTML, hint){
-  w.innerHTML=`<div class="plate-stage" style="width:clamp(260px,48vmin,520px);">
+  w.innerHTML=`<div class="plate-stage">
     <div style="position:relative;width:100%;text-align:center;">${baseHTML}
       <div id="ov" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;opacity:0;">${overlayHTML}</div>
     </div>
@@ -1277,7 +1284,7 @@ function washBowlHTML(){ return `<div style="position:relative;width:74%;margin:
 function buildWashFruit(w, content){
   content=content||washBowlHTML();   // 기본: 그릇에 재료를 담아 물줄기 아래에서 씻기
   const faucet=IMG.jFaucet?`<img src="${IMG.jFaucet}" style="width:30%;margin:0 auto;display:block;position:relative;z-index:2;">`:`<div class="cardemoji" style="font-size:10vmin;text-align:center;">🚿</div>`;
-  w.innerHTML=`<div class="plate-stage" style="width:clamp(280px,50vmin,540px);padding-bottom:8vmin;">
+  w.innerHTML=`<div class="plate-stage" style="padding-bottom:8vmin;">
     ${faucet}
     <div id="wstream" style="position:absolute;left:50%;top:20%;width:6%;height:38%;transform:translateX(-50%);border-radius:0 0 40% 40%;
       background:repeating-linear-gradient(180deg,rgba(150,210,255,.78) 0 1.6vmin,rgba(200,235,255,.5) 1.6vmin 3.2vmin);
@@ -1312,7 +1319,7 @@ function buildJuiceWash(w){ buildWashFruit(w); }
 /* 흔들기(공용) — 좌우로 흔들기(방향전환 N회). content=흔들 대상 HTML */
 function buildShake(w, opts){ opts=opts||{};
   const content=opts.content||fruitCluster("14vmin"), need=opts.need||6, hint=opts.hint||"👆↔️ 좌우로 흔들어요";
-  w.innerHTML=`<div class="plate-stage" style="width:clamp(260px,46vmin,500px);">
+  w.innerHTML=`<div class="plate-stage">
     <div id="shaker" style="position:relative;transition:transform .08s;">${content}
       <div style="position:absolute;left:-5vmin;top:46%;z-index:3;">${holdHand(22,"8vmin")}</div>
       <div style="position:absolute;right:-5vmin;top:46%;z-index:3;">${holdHand(-22,"8vmin")}</div></div>
@@ -1333,12 +1340,12 @@ function buildJuiceShake(w){ buildShake(w,{content:fruitCluster("14vmin"),hint:"
 /* 도마 썰기(공용) — 칼을 위에서 아래로. content=통 재료, sliced=썬 모습 */
 function buildCutBoard(w, opts){ opts=opts||{};
   const content=opts.content||fruitCluster("11vmin"), sliced=opts.sliced||slicedCluster("11vmin"), hint=opts.hint||"🔪 위에서 아래로 썰어요";
-  w.innerHTML=`<div class="plate-stage" id="board" style="width:clamp(300px,54vmin,580px);">
+  w.innerHTML=`<div class="plate-stage" id="board">
     ${IMG.jBoard?`<img src="${IMG.jBoard}" style="width:100%;display:block;">`:`<div style="width:100%;height:38vmin;background:#e9d3a8;border-radius:4vmin;"></div>`}
     <div id="whole" style="position:absolute;left:16%;right:16%;top:24%;display:flex;flex-wrap:wrap;gap:.6vmin;justify-content:center;align-items:center;">${content}</div>
     <div id="hold" style="position:absolute;left:6%;top:42%;z-index:6;transition:transform .1s;">${holdHand(0,"11vmin")}</div>
     <div id="dash" style="position:absolute;left:50%;top:6%;bottom:6%;border-left:.9vmin dashed #fff;transform:translateX(-50%);filter:drop-shadow(0 0 .5vmin rgba(0,0,0,.5));"></div>
-    <div class="drag" id="knife" style="left:50%;transform:translateX(-50%);top:-10%;z-index:8;"><div style="position:relative;"><img src="${IMG.knife}" style="height:clamp(240px,48vmin,520px);width:auto;"><div style="position:absolute;left:50%;bottom:8%;transform:translateX(-50%);z-index:2;">${knifeHand(-8,"8vmin")}</div></div></div>
+    <div class="drag" id="knife" style="left:50%;transform:translateX(-50%);top:-10%;z-index:8;"><div style="position:relative;"><img src="${IMG.knife}" style="height:var(--sz-knife);width:auto;"><div style="position:absolute;left:50%;bottom:8%;transform:translateX(-50%);z-index:2;">${knifeHand(-8,"8vmin")}</div></div></div>
   </div>`;
   const stage=w.querySelector("#board"),knife=w.querySelector("#knife"),hd=w.querySelector("#hold");let dist=0,done=false,ly=null;
   drag(knife,(x,y)=>{ if(done)return; if(ly!==null){const dy=y-ly; if(dy>0)dist+=dy;} ly=y;  // 내리써는 동작만 인정
@@ -1356,7 +1363,7 @@ function buildJuicePut(w){
   function render(){
     const blenderSrc=(inside.length&&IMG.jBlenderFull)?IMG.jBlenderFull:IMG.jBlender;
     w.innerHTML=`<div class="cookrow">
-      <div class="plate-stage" style="width:clamp(240px,42vmin,460px);">
+      <div class="plate-stage">
         ${blenderSrc?`<img src="${blenderSrc}" style="width:100%;display:block;">`:`<div class="cardemoji" style="font-size:clamp(150px,36vmin,380px);">🫙</div>`}
         ${(!IMG.jBlenderFull)?`<div id="inlay" style="position:absolute;left:24%;right:24%;top:24%;height:34%;display:flex;flex-wrap:wrap;gap:.4vmin;align-items:center;justify-content:center;"></div>`:""}
         <div id="dropi" class="target-out hintglow" style="left:22%;right:22%;top:14%;height:44%;border-radius:30%;"></div>
@@ -1378,9 +1385,9 @@ function buildJuicePut(w){
 /* 5) 갈기 — 믹서기 몸통의 단추를 10번 꾹꾹 누르기(별도 버튼 없이, 말풍선 안내) */
 function buildJuiceBlend(w){
   const taps=10;
-  w.innerHTML=`<div class="plate-stage" id="stage" style="width:clamp(240px,44vmin,480px);text-align:center;padding-bottom:6vmin;">
+  w.innerHTML=`<div class="plate-stage" id="stage" style="text-align:center;padding-bottom:6vmin;">
     <div id="mxwrap" style="position:relative;display:inline-block;transition:transform .08s;">
-      ${IMG.jBlenderFull?`<img id="mx" src="${IMG.jBlenderFull}" style="width:clamp(180px,40vmin,420px);display:block;">`:`<div id="mx" class="cardemoji" style="font-size:clamp(150px,36vmin,380px);">🫙</div>`}
+      ${IMG.jBlenderFull?`<img id="mx" src="${IMG.jBlenderFull}" style="width:80%;display:block;margin:0 auto;">`:`<div id="mx" class="cardemoji" style="font-size:clamp(150px,36vmin,380px);">🫙</div>`}
       <div id="mxbtn" class="hintglow" style="position:absolute;left:50%;bottom:11%;transform:translateX(-50%);width:7vmin;height:7vmin;border-radius:50%;
         background:radial-gradient(circle at 34% 30%,#ff8a80,#e0392b);border:.5vmin solid #fff;box-shadow:0 .5vmin 1vmin rgba(0,0,0,.25);cursor:pointer;"></div>
       <div class="bubblehint" style="top:auto;bottom:24%;">🖐️ 빨간 단추를 꾹꾹 10번 눌러요</div>
@@ -1448,10 +1455,10 @@ function buildStir(w, vessel, tool, from, toolFade, toolDeg){
 /* 2) 붓기 — 기울이는 각도(각도 차용). grip={r,t,deg,flip,base,big} — 손잡이 위치·손 반전·그림 기본각·큰 팬 */
 function buildPour(w, bottle, target, grip, name){
   grip=grip||{r:"6%",t:"36%",deg:0}; name=name||"주전자";
-  const cupW=grip.big?"clamp(280px,52vmin,560px)":"clamp(200px,40vmin,440px)";  // 팬(대상) 크게 — big이면 2배급
+  const cupW="var(--sz-vessel)";  // 그릇·팬은 그릇 토큰
   w.innerHTML=povStage(`
     <div class="povfood" id="cup" style="width:${cupW};height:${cupW};top:${grip.big?62:56}%;">${gart(target||"🍳")}<div id="fill"></div></div>
-    <div class="tool" id="bottle" style="left:${grip.big?59:36}%;top:14%;width:clamp(130px,26vmin,290px);height:clamp(130px,26vmin,290px);transform:translate(-50%,-50%);transform-origin:64% 82%;transition:transform .18s ease-out;"><div style="position:relative;transform:rotate(${grip.base||0}deg);">${gart(bottle||"🥛")}<div style="position:absolute;right:${grip.r};top:${grip.t};z-index:3;pointer-events:none;">${gripHand(grip.deg,"8vmin",grip.flip)}</div></div></div>
+    <div class="tool" id="bottle" style="left:${grip.big?59:36}%;top:14%;width:var(--sz-tool);height:var(--sz-tool);transform:translate(-50%,-50%);transform-origin:64% 82%;transition:transform .18s ease-out;"><div style="position:relative;transform:rotate(${grip.base||0}deg);">${gart(bottle||"🥛")}<div style="position:absolute;right:${grip.r};top:${grip.t};z-index:3;pointer-events:none;">${gripHand(grip.deg,"8vmin",grip.flip)}</div></div></div>
     <div id="stream"></div>`, `🫗 ${name}를 잡아 그릇 위로 가져가요`);
   const pov=w.querySelector(".pov"),act=w.querySelector("#act"),bot=w.querySelector("#bottle"),
         fill=w.querySelector("#fill"),stream=w.querySelector("#stream"),cup=w.querySelector("#cup"),
@@ -1484,7 +1491,7 @@ function buildSliceRepeat(w, food, pieces, sliced, unit, layDeg){
     <div class="povfood" id="food" style="top:60%;"><div id="foodrot" style="width:100%;height:100%;transform:rotate(${layDeg}deg);transition:transform .1s;">${gart(food||"🥕")}</div></div>
     <div id="hold" style="position:absolute;left:12%;top:50%;z-index:5;transition:transform .1s;">${holdHand(0,"10vmin")}</div>
     <div id="cutrow" style="position:absolute;left:50%;top:24%;transform:translateX(-50%);display:flex;gap:.5vmin;align-items:flex-end;z-index:4;"></div>
-    <div class="tool" id="knife" style="top:54%;width:auto;height:auto;"><div style="position:relative;"><img src="${IMG.knife}" style="height:clamp(220px,42vmin,460px);"><div style="position:absolute;left:50%;bottom:8%;transform:translateX(-50%);z-index:2;">${knifeHand(-8,"8vmin")}</div></div></div>`, "🔪 위아래로 썰어요");
+    <div class="tool" id="knife" style="top:54%;width:auto;height:auto;"><div style="position:relative;"><img src="${IMG.knife}" style="height:var(--sz-knife);"><div style="position:absolute;left:50%;bottom:8%;transform:translateX(-50%);z-index:2;">${knifeHand(-8,"8vmin")}</div></div></div>`, "🔪 위아래로 썰어요");
   const pov=w.querySelector(".pov"),act=w.querySelector("#act"),knife=w.querySelector("#knife"),fd=w.querySelector("#food"),fdrot=w.querySelector("#foodrot"),row=w.querySelector("#cutrow"),hd=w.querySelector("#hold");
   const pb=pipbar(w,pieces); let cuts=0,down=false,ly=null,dist=0,done=false;
   act.addEventListener("pointerdown",e=>{down=true;ly=e.clientY;dist=0;try{act.setPointerCapture(e.pointerId);}catch(_){}});
@@ -1508,7 +1515,7 @@ function buildFlip(w, pan, cake, flips){
   const armArt = IMG.gripArm ? `<img src="${IMG.gripArm}" style="width:13vmin;display:block;">`   // 팔 그림(쿠킹런-손-팔쥔손.png) 있으면 사용
     : `${gripHand(0,"10vmin")}<div style="width:6.4vmin;height:22vmin;background:linear-gradient(90deg,#eeb489,#f7cfa6 45%,#e3a374);border:.55vmin solid #5b4632;border-top:none;border-radius:0 0 3vmin 3vmin;margin-top:-1.2vmin;"></div>`;
   w.innerHTML=povStage(`
-    <div class="povfood" id="pan" style="width:clamp(280px,52vmin,560px);height:clamp(280px,52vmin,560px);top:58%;">
+    <div class="povfood" id="pan" style="width:var(--sz-vessel);height:var(--sz-vessel);top:58%;">
       <div id="panart" style="width:100%;height:100%;transition:transform .16s;">${gart(pan||"🍳")}</div>
       <div id="cake" style="position:absolute;left:26%;top:11%;width:48%;height:48%;transition:transform .55s cubic-bezier(.3,.55,.35,1);">${gart(cake||"🥞")}</div>
       <div id="arm" style="position:absolute;left:50%;top:70%;transform:translateX(-50%);z-index:3;display:flex;flex-direction:column;align-items:center;transition:transform .16s;">${armArt}</div>
@@ -1544,7 +1551,7 @@ function buildServe(w, food, opts){ opts=opts||{};
   w.innerHTML=`<div class="cookrow" id="board">
     <div class="plate-stage"><img class="plate" src="${IMG.plate}">${targetExtra}
       <div id="dropp" class="target-out hintglow" style="left:18%;right:18%;top:28%;height:42%;border-radius:50%;z-index:3;"></div></div>
-    <div class="drag" id="food" style="left:2%;top:16%;width:clamp(120px,26vmin,280px);height:clamp(120px,26vmin,280px);z-index:5;">${gart(food||"🥞")}</div>
+    <div class="drag" id="food" style="left:2%;top:16%;width:var(--sz-food);height:var(--sz-food);z-index:5;">${gart(food||"🥞")}</div>
   </div>`;
   const board=w.querySelector("#board"),d=w.querySelector("#food");
   drag(d,null,()=>{ const t=board.querySelector("#dropp");
@@ -1558,7 +1565,7 @@ function buildServe(w, food, opts){ opts=opts||{};
 }
 /* 보고 따라하기 — 자동 액션이 없는 과정용: 교사 첨부 사진(또는 요리사 이모지)+문장+'했어요' 버튼 */
 function buildShow(w, imgSrc, text){
-  w.innerHTML=`<div class="plate-stage" style="width:clamp(280px,52vmin,560px);text-align:center;">
+  w.innerHTML=`<div class="plate-stage" style="text-align:center;">
     ${imgSrc?`<img src="${imgSrc}" style="max-width:100%;max-height:48vmin;border-radius:2vmin;box-shadow:0 .8vmin 2.4vmin rgba(0,0,0,.15);">`
             :`<div class="cardemoji" style="font-size:24vmin;">🧑‍🍳</div>`}
     <div style="font-weight:900;font-size:clamp(16px,3vmin,32px);margin:1.6vmin 0;">${text||""}</div>
@@ -1577,13 +1584,13 @@ function buildScoop(w, opts){ opts=opts||{};
   let got=0, done=false, loaded=false;
   function render(){
     w.innerHTML=`<div class="cookrow">
-      <div id="srcbox" style="position:relative;width:clamp(110px,22vmin,240px);text-align:center;">${srcArt}<div class="nm">${opts.srcName||""}</div></div>
-      <div class="plate-stage" style="width:clamp(240px,42vmin,460px);">
+      <div id="srcbox" style="position:relative;width:calc(var(--sz-ing)*1.4);text-align:center;">${srcArt}<div class="nm">${opts.srcName||""}</div></div>
+      <div class="plate-stage">
         ${targetArt}
         <div id="heap" style="position:absolute;left:20%;right:20%;top:22%;height:44%;display:flex;flex-wrap:wrap;gap:.4vmin;align-items:center;justify-content:center;z-index:3;"></div>
       </div>
     </div>
-    <div class="drag hintglow" id="spoon" style="position:fixed;left:20vw;top:40vh;width:clamp(48px,8.5vmin,100px);z-index:40;touch-action:none;border-radius:50%;">
+    <div class="drag hintglow toolstart" id="spoon" style="width:calc(var(--sz-tool)*.45);border-radius:50%;">
       <div id="load" style="position:absolute;left:50%;top:2%;transform:translateX(-50%);opacity:0;transition:opacity .2s;z-index:1;">${blob}</div>${spoonArt}
       <div style="position:absolute;left:50%;bottom:2%;transform:translateX(-50%);z-index:2;">${gripHand(0,"7vmin")}</div>
     </div>
@@ -1614,7 +1621,7 @@ function buildSqueeze(w, opts){ opts=opts||{};
   const pumps=opts.pumps||4, hint=opts.hint||"⬇️ 아래로 짜요", color=opts.color||"#e0392b";
   const foodArt = opts.foodHTML || (opts.foodImg&&IMG[opts.foodImg]?`<img src="${IMG[opts.foodImg]}" style="width:100%;display:block;">`:`<div class="cardemoji" style="font-size:20vmin;">${opts.foodEmoji||"🌭"}</div>`);
   const bottleArt = opts.bottleHTML || `<span style="font-size:11vmin;line-height:1;">${opts.bottleEmoji||"🥫"}</span>`;
-  w.innerHTML=`<div class="plate-stage" id="stage" style="width:clamp(280px,50vmin,560px);">
+  w.innerHTML=`<div class="plate-stage" id="stage">
     <div id="foodbox" style="position:relative;width:100%;">${foodArt}<svg id="sauce" viewBox="0 0 100 60" preserveAspectRatio="none" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;"></svg></div>
     <div id="bottle" style="position:absolute;left:50%;top:-8%;transform:translateX(-50%);z-index:6;transition:transform .09s;">${bottleArt}<div style="position:absolute;left:50%;top:44%;transform:translateX(-50%);z-index:2;">${gripHand(0,"6.5vmin")}</div></div>
     <div class="bubblehint" style="top:-8vmin;">${hint}</div>
@@ -1641,8 +1648,8 @@ function buildSqueeze(w, opts){ opts=opts||{};
 function buildKnead(w, opts){ opts=opts||{};
   const taps=opts.taps||5, hint=opts.hint||"👐 꾹꾹 눌러 뭉쳐요";
   const art=(k,e)=>k&&IMG[k]?`<img src="${IMG[k]}" style="width:100%;height:100%;object-fit:contain;">`:`<div class="cardemoji" style="font-size:20vmin;">${e}</div>`;
-  w.innerHTML=`<div class="plate-stage" id="stage" style="width:clamp(260px,46vmin,500px);">
-    <div id="lump" style="width:60vmin;max-width:100%;height:40vmin;display:flex;align-items:center;justify-content:center;transition:transform .1s;">${art(opts.fromImg,opts.fromEmoji||"🍚")}</div>
+  w.innerHTML=`<div class="plate-stage" id="stage">
+    <div id="lump" style="width:var(--sz-food);height:var(--sz-food);margin:0 auto;display:flex;align-items:center;justify-content:center;transition:transform .1s;">${art(opts.fromImg,opts.fromEmoji||"🍚")}</div>
     <div id="kh" style="position:absolute;left:50%;top:26%;transform:translateX(-50%);display:flex;gap:8vmin;z-index:4;transition:transform .12s;">${holdHand(10,"13vmin")}${holdHand(-10,"13vmin")}</div>
     <div class="bubblehint" style="top:-8vmin;">${hint}</div>
     <div id="act" style="position:absolute;inset:0;cursor:pointer;"></div>
@@ -1656,8 +1663,8 @@ function buildKnead(w, opts){ opts=opts||{};
 }
 /* 굽기 — 버튼을 꾹 눌러 굽기(열기·갈색화 연출). from→to 교체 */
 function buildBake(w, opts){ opts=opts||{};
-  const art=(k,e)=>k&&IMG[k]?`<img src="${IMG[k]}" style="width:clamp(150px,36vmin,380px);display:block;margin:0 auto;">`:`<div class="cardemoji" style="font-size:clamp(130px,30vmin,320px);">${e}</div>`;
-  w.innerHTML=`<div class="plate-stage" id="stage" style="width:clamp(260px,48vmin,520px);text-align:center;">
+  const art=(k,e)=>k&&IMG[k]?`<img src="${IMG[k]}" style="width:var(--sz-food);display:block;margin:0 auto;">`:`<div class="cardemoji" style="font-size:clamp(130px,30vmin,320px);">${e}</div>`;
+  w.innerHTML=`<div class="plate-stage" id="stage" style="text-align:center;">
     <div id="food" style="position:relative;transition:filter .2s;">${art(opts.fromImg,opts.fromEmoji||"🍞")}</div>
     <div id="heat" style="position:absolute;left:6%;right:6%;bottom:12%;height:0;background:linear-gradient(to top,rgba(255,120,0,.4),transparent);pointer-events:none;border-radius:4vmin;transition:height .12s;"></div>
     <button id="bakebtn" class="big-btn" style="margin:1.4vmin auto 0;display:block;">🔥 꾹 눌러 구워요</button>
@@ -1684,14 +1691,14 @@ function buildSpreadSauce(w, opts){ opts=opts||{};
       </div>`;
   const baseArt=opts.baseHTML||`<img src="${IMG.breadBot}" style="width:100%;display:block;">`;
   w.innerHTML=`<div class="cookrow">
-    <div id="potbox" style="position:relative;width:clamp(130px,24vmin,260px);text-align:center;">${potArt}<div class="nm">${opts.potName||"토마토 소스"}</div></div>
+    <div id="potbox" style="position:relative;width:calc(var(--sz-ing)*1.4);text-align:center;">${potArt}<div class="nm">${opts.potName||"토마토 소스"}</div></div>
     <div class="plate-stage"><img class="plate" src="${IMG.plate}">
       <div class="sand" id="base">${baseArt}
         <div id="sauceov" style="position:absolute;inset:16% 14%;border-radius:14%;background:radial-gradient(circle,rgba(214,60,40,.85),rgba(214,60,40,.35) 72%);opacity:0;pointer-events:none;"></div>
       </div>
     </div>
   </div>
-  <div class="drag hintglow" id="spoon" style="position:fixed;left:20vw;top:34vh;width:clamp(72px,12.8vmin,136px);z-index:40;touch-action:none;">
+  <div class="drag hintglow toolstart" id="spoon" style="width:calc(var(--sz-tool)*.45);">
     ${IMG.spoon?`<img src="${IMG.spoon}" style="width:100%;transform:rotate(180deg);display:block;">`:`<div style="font-size:9vmin;">🥄</div>`}
     <div id="spload" style="position:absolute;left:50%;bottom:5%;transform:translateX(-50%);width:5.6vmin;height:4.2vmin;border-radius:50% 50% 46% 46%;background:radial-gradient(circle at 38% 32%,#ef5044,#c22a1c);box-shadow:inset 0 -0.6vmin 0 rgba(0,0,0,.12);opacity:0;transition:opacity .2s;z-index:2;"></div>
   </div>
@@ -1713,7 +1720,7 @@ function buildSpreadSauce(w, opts){ opts=opts||{};
 /* 가루 뿌리기 — 위에서 흔들면 가루가 날려 아래 음식에 쌓임 */
 function buildSprinkle(w, opts){ opts=opts||{};
   const need=opts.need||6, hint=opts.hint||"↔️ 흔들어 뿌려요", color=opts.color||"#ffd766";
-  w.innerHTML=`<div class="plate-stage" id="stage" style="width:clamp(280px,50vmin,560px);padding-bottom:6vmin;">
+  w.innerHTML=`<div class="plate-stage" id="stage" style="padding-bottom:6vmin;">
     <div id="shaker" style="position:relative;width:38%;margin:0 auto;transition:transform .08s;z-index:5;">${opts.shakerHTML||`<div class="cardemoji" style="font-size:13vmin;">🧀</div>`}
       <div style="position:absolute;left:-4.5vmin;top:40%;z-index:3;">${holdHand(22,"7vmin")}</div>
       <div style="position:absolute;right:-4.5vmin;top:40%;z-index:3;">${holdHand(-22,"7vmin")}</div></div>
@@ -1740,10 +1747,10 @@ function buildSprinkle(w, opts){ opts=opts||{};
 }
 /* 오븐 — 문 열기(빨간 단추) → 넣기(드래그) → 문 닫기 → 시간 설정(1분·30초) → 조리 시작(꾹) → 띵! 완성 */
 function buildOven(w, opts){ opts=opts||{};
-  const ovenW="clamp(300px,54vmin,580px)";
+  const ovenW="var(--sz-vessel)";
   const tbtn=`font-weight:900;font-size:clamp(12px,2.4vmin,26px);color:#fff;background:#5b6a77;border:.4vmin solid #3d4954;border-radius:1vmin;padding:.5vmin 1.3vmin;cursor:pointer;`;
   w.innerHTML=`<div class="cookrow">
-    <div class="drag hintglow" id="fooddrag" style="position:relative;left:0;top:0;width:clamp(120px,22vmin,240px);z-index:9;touch-action:none;">${opts.foodHTML||`<div class="cardemoji" style="font-size:14vmin;">🍕</div>`}</div>
+    <div class="drag hintglow" id="fooddrag" style="position:relative;left:0;top:0;width:calc(var(--sz-food)*.8);z-index:9;touch-action:none;">${opts.foodHTML||`<div class="cardemoji" style="font-size:14vmin;">🍕</div>`}</div>
     <div class="plate-stage" id="stage" style="width:${ovenW};">
       <div id="ovenbox" style="position:relative;width:100%;aspect-ratio:1.28/1;background:linear-gradient(#9a9aa4,#7e7e88);border:.8vmin solid #55555e;border-radius:3vmin;perspective:90vmin;">
         <div id="tpanel" style="position:absolute;left:5%;top:2.2%;height:10%;display:flex;gap:1vmin;align-items:center;z-index:8;">
@@ -1809,7 +1816,7 @@ function finishCooking(){
   const dn=currentDish?currentDish.nm:"샌드위치";
   document.getElementById("done-title").textContent=dn+"를 완성했어요!"; fitText(document.getElementById("done-title"));
   const art=(currentDish&&currentDish.done)?currentDish.done():wholeSandwich();
-  document.getElementById("hero-done").innerHTML=`<div style="width:clamp(260px,48vmin,460px);display:flex;justify-content:center;">${art}</div>`;
+  document.getElementById("hero-done").innerHTML=`<div style="width:var(--sz-vessel);display:flex;justify-content:center;">${art}</div>`;
   SND.clap(); say(dn+"를 완성했어요! 정말 잘했어요.");
   confetti(document.getElementById("s-done"));
 }
@@ -1891,7 +1898,7 @@ function showSelect(){ ac(); chosen=[];stepIdx=0;
 }
 
 /* 장바구니 */
-function ingIcon(k){const p=PANTRY[k]; return p.img&&IMG[p.img]?`<div class="picwrap"><img src="${IMG[p.img]}"></div>`:`<div class="picwrap"><div class="em">${p.e}</div></div>`;}
+function ingIcon(k){const p=PANTRY[k]; const mw=Math.min(94,Math.round(70*(ING_SZ[k]||1))); return p.img&&IMG[p.img]?`<div class="picwrap"><img src="${IMG[p.img]}" style="max-width:${mw}%;max-height:${mw}%;"></div>`:`<div class="picwrap"><div class="em">${p.e}</div></div>`;}
 function openCart(dish){
   STEPS=dish.steps||SANDWICH_STEPS;
   const free=!!dish.freeChoice;
@@ -1949,7 +1956,7 @@ function goPrep(phase){
   if(useSep){
     // 세면대 1.5배 크게·아래로 고정(파란박스/테두리 제거, 세면대 이미지만)
     sink.style.cssText="position:relative;display:flex;align-items:center;justify-content:center;cursor:grab;touch-action:none;overflow:visible;"
-      +"width:clamp(420px,84vmin,900px);height:clamp(300px,58vmin,620px);margin-top:6vmin;border:none;border-radius:0;"
+      +"width:calc(var(--sz-vessel)*1.3);height:calc(var(--sz-vessel)*.9);margin-top:6vmin;border:none;border-radius:0;"
       +"background:url("+IMG.basin+") center/contain no-repeat;";
     wi.src=IMG.hands;
     wi.style.cssText="position:absolute;left:50%;top:62%;transform:translate(-50%,-50%);width:40%;max-width:340px;z-index:2;transition:transform .1s;pointer-events:none;";
