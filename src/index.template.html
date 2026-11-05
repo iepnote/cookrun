@@ -591,13 +591,44 @@ function beep(f=660,dur=.16,type="sine",vol=.25,delay=0){
   g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+.02);
   g.gain.exponentialRampToValueAtTime(.0001,t+dur);o.start(t);o.stop(t+dur+.02);}catch(e){}
 }
+/* ===== 효과음 (설계 §4) — Web Audio 합성. SFX_FILES[키]에 data URI를 넣으면 파일이 우선 재생 ===== */
+const SFX_FILES={};   // 예: SFX_FILES.sizzle="data:audio/mp3;base64,…"  (루프 소리: sizzle·blender·water)
+let NOISE=null; function noiseBuf(){ if(NOISE)return NOISE; const c=ac(),n=c.sampleRate; NOISE=c.createBuffer(1,n,c.sampleRate);
+  const d=NOISE.getChannelData(0); for(let i=0;i<n;i++)d[i]=Math.random()*2-1; return NOISE; }
+function playFile(k){ if(!SFX_FILES[k]||SET.vol<=0||!SET.sfx)return false; try{const a=new Audio(SFX_FILES[k]);a.volume=SET.vol;a.play();}catch(_){} return true; }
+function noise(dur,filt,freq,vol,delay){ if(SET.vol<=0||!SET.sfx)return; try{ const c=ac(),s=c.createBufferSource(),f=c.createBiquadFilter(),g=c.createGain();
+  s.buffer=noiseBuf(); s.loop=true; f.type=filt; f.frequency.value=freq; s.connect(f);f.connect(g);g.connect(c.destination);
+  const t=c.currentTime+(delay||0),v=(vol||.2)*SET.vol; g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(v,t+.01); g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+  s.start(t); s.stop(t+dur+.02); }catch(_){} }
+const LOOPS={};
 const SND={
-  good(){beep(523,.12,"sine",.22);beep(784,.18,"sine",.22,.1);},
-  pop(){beep(380,.08,"triangle",.2);},
-  cut(){beep(220,.05,"sawtooth",.18);beep(180,.06,"sawtooth",.18,.05);vib(30);},
-  clap(){[523,659,784,1046].forEach((f,i)=>beep(f,.15,"sine",.2,i*.1));},
-  squirt(){beep(1500,.05,"square",.16);beep(760,.11,"square",.13,.04);vib(20);},  // 케첩 찍-
-  ding(){beep(1318,.5,"sine",.28);beep(1976,.7,"sine",.18,.06);}                                              // 오븐 띵-
+  good(){ if(playFile("good"))return; beep(523,.12,"sine",.22);beep(784,.18,"sine",.22,.1);},
+  pop(){ if(playFile("pop"))return; beep(380,.08,"triangle",.2);},
+  chop(){ if(playFile("chop"))return; noise(.05,"highpass",2000,.25); beep(120,.07,"sine",.3,.01); vib(30);},   // 칼 탁
+  cut(){ this.chop(); },
+  clap(){ if(playFile("clap"))return; [523,659,784,1046].forEach((f,i)=>beep(f,.15,"sine",.2,i*.1));},
+  squirt(){ if(playFile("squirt"))return; beep(1500,.05,"square",.16);beep(760,.11,"square",.13,.04); vib(20);},  // 케첩 찍-
+  ding(){ if(playFile("ding"))return; beep(1318,.5,"sine",.28);beep(1976,.7,"sine",.18,.06);},                  // 오븐 띵-
+  knock(){ if(playFile("knock"))return; beep(400,.04,"sine",.25); noise(.03,"bandpass",1500,.15);},           // 달걀 톡
+  crack(){ if(playFile("crack"))return; noise(.09,"lowpass",900,.3); noise(.05,"highpass",2500,.2,.03);},     // 달걀 쩍
+  nom(){ if(playFile("nom"))return; beep(300,.06,"triangle",.22); beep(180,.09,"triangle",.2,.05);},          // 냠
+  stamp(){ if(playFile("stamp"))return; beep(150,.1,"sine",.35); noise(.05,"lowpass",600,.25); vib(40);},     // 도장 쾅
+  twinkle(){ if(playFile("twinkle"))return; [1500,2000,2500].forEach((f,i)=>beep(f,.14,"sine",.16,i*.08));},  // 반짝
+  start(kind){ if(LOOPS[kind]||SET.vol<=0||!SET.sfx)return;
+    if(SFX_FILES[kind]){ try{const a=new Audio(SFX_FILES[kind]);a.loop=true;a.volume=SET.vol;a.play();LOOPS[kind]={a};}catch(_){} return; }
+    try{ const c=ac(),g=c.createGain(); g.gain.value=0; g.connect(c.destination); const nodes=[g];
+      if(kind==="sizzle"){ const s=c.createBufferSource(),f=c.createBiquadFilter(),lfo=c.createOscillator(),lg=c.createGain();
+        s.buffer=noiseBuf();s.loop=true;f.type="bandpass";f.frequency.value=3000;f.Q.value=.8; lfo.frequency.value=4; lg.gain.value=.08;
+        lfo.connect(lg);lg.connect(g.gain); s.connect(f);f.connect(g); s.start();lfo.start(); nodes.push(s,lfo); g.gain.linearRampToValueAtTime(.16*SET.vol,c.currentTime+.15); }
+      else if(kind==="blender"){ const o=c.createOscillator(),s=c.createBufferSource(),f=c.createBiquadFilter(),ng=c.createGain(); o.type="sawtooth"; o.frequency.setValueAtTime(90,c.currentTime); o.frequency.linearRampToValueAtTime(130,c.currentTime+.4);
+        s.buffer=noiseBuf();s.loop=true;f.type="lowpass";f.frequency.value=800; ng.gain.value=.25; s.connect(f);f.connect(ng);ng.connect(g); o.connect(g); o.start();s.start(); nodes.push(o,s); g.gain.linearRampToValueAtTime(.14*SET.vol,c.currentTime+.1); }
+      else { const s=c.createBufferSource(),f=c.createBiquadFilter(),lfo=c.createOscillator(),lg=c.createGain(); s.buffer=noiseBuf();s.loop=true;f.type="lowpass";f.frequency.value=1200;
+        lfo.frequency.value=7; lg.gain.value=300; lfo.connect(lg); lg.connect(f.frequency); s.connect(f);f.connect(g); s.start();lfo.start(); nodes.push(s,lfo); g.gain.linearRampToValueAtTime(.12*SET.vol,c.currentTime+.2); }
+      LOOPS[kind]={g,nodes}; }catch(_){} },
+  stop(kind){ const L=LOOPS[kind]; if(!L)return; delete LOOPS[kind]; if(L.a){try{L.a.pause();}catch(_){} return;}
+    try{ const c=ac(); L.g.gain.cancelScheduledValues(c.currentTime); L.g.gain.setTargetAtTime(0,c.currentTime,.08);
+      setTimeout(()=>{ L.nodes.forEach(n=>{try{n.stop();}catch(_){} try{n.disconnect();}catch(_){}}); },400); }catch(_){} },
+  stopAll(){ Object.keys(LOOPS).forEach(k=>this.stop(k)); }
 };
 
 /* 음성 */
@@ -621,7 +652,7 @@ function say(t){ lastSay=t; if(SET.vol<=0||!SET.tts)return; try{ speechSynthesis
 try{speechSynthesis.onvoiceschanged=()=>{};}catch(e){}
 
 /* 화면/안내박스 */
-function show(id){document.querySelectorAll(".screen").forEach(s=>s.classList.toggle("on",s.id===id));}
+function show(id){SND.stopAll();document.querySelectorAll(".screen").forEach(s=>s.classList.toggle("on",s.id===id));}
 function curScreen(){const s=document.querySelector(".screen.on");return s?s.id:"";}
 function fitText(el){ if(!el)return; el.classList.toggle("longtxt",(el.textContent||"").length>14); }
 function setHead(t){const h=document.getElementById("headline"); if(t){h.textContent=t;h.style.display="block";fitText(h);} else h.style.display="none";}
@@ -1062,7 +1093,7 @@ function succeed(){ if(curScreen()==="s-edit"){ SND.good(); toast("좋아요!");
   const wait=Math.max(1200, COOK_MIN_MS-(Date.now()-cookT0)); setTimeout(nextStep,wait); }
 function renderStep(){
   show("s-step"); setHead(null); band();
-  cookT0=Date.now();   // 단계 시작 시각(최소 3초 보장용)
+  cookT0=Date.now(); SND.stopAll();   // 단계 시작 시각(최소 3초 보장용)
   const s=STEPS[stepIdx];
   document.getElementById("g-text").textContent=s.text; fitText(document.getElementById("g-text"));
   document.getElementById("g-say").onclick=()=>say(s.say);
@@ -1301,7 +1332,7 @@ function buildWashFruit(w, content){
         st=w.querySelector("#wstream"),hand=w.querySelector("#rubhand");
   const need=8, pb=pipbar(w,need);
   let last=null,dir=0,cnt=0,down=false,done=false;
-  rub.addEventListener("pointerdown",e=>{down=true;last=e.clientX;st.style.opacity=1;   // 문지르기 시작=물 틀기
+  rub.addEventListener("pointerdown",e=>{down=true;last=e.clientX;st.style.opacity=1; SND.start("water");   // 문지르기 시작=물 틀기
     try{rub.setPointerCapture(e.pointerId);}catch(_){}});
   rub.addEventListener("pointermove",e=>{ if(!down||done)return;
     const r=rub.getBoundingClientRect();   // 손이 문지르는 위치를 따라감
@@ -1311,11 +1342,11 @@ function buildWashFruit(w, content){
     if(Math.abs(dx)>12){ const nd=Math.sign(dx);
       fr.style.transform="translateX("+(nd*1.8)+"vmin) rotate("+(nd*3)+"deg)";   // 과일이 문지르는 방향으로 흔들림
       if(nd!==dir){ dir=nd; cnt++; SND.pop(); bubble(stage); splash(stage); pb.tick(cnt);
-        if(cnt>=need){ done=true; st.style.opacity=0; fr.style.transform="";
+        if(cnt>=need){ done=true; st.style.opacity=0; fr.style.transform=""; SND.stop("water");
           fr.style.filter="brightness(1.28) saturate(1.15)"; sparkle(stage); SND.good();   // 깨끗해진 반짝
           setTimeout(()=>{fr.style.filter="";succeed();},500); } }
       last=e.clientX; } });
-  const up=()=>{down=false; if(!done){st.style.opacity=0; fr.style.transform="";}};   // 손 떼면 물 잠금
+  const up=()=>{down=false; SND.stop("water"); if(!done){st.style.opacity=0; fr.style.transform="";}};   // 손 떼면 물 잠금
   rub.addEventListener("pointerup",up);rub.addEventListener("pointercancel",up);
 }
 function buildJuiceWash(w){ buildWashFruit(w); }
@@ -1396,7 +1427,7 @@ function buildJuiceBlend(w){
   </div>`;
   const stage=w.querySelector("#stage"),wrap=w.querySelector("#mxwrap"),mx=w.querySelector("#mx"),btn=w.querySelector("#mxbtn");
   const pb=pipbar(w,taps); let cnt=0,done=false;
-  btn.addEventListener("pointerdown",e=>{ e.preventDefault(); if(done)return; cnt++; SND.pop(); vib(20);
+  btn.addEventListener("pointerdown",e=>{ e.preventDefault(); if(done)return; cnt++; SND.pop(); vib(20); SND.start("blender"); setTimeout(()=>SND.stop("blender"),260);
     beep(240+cnt*30,.09,"sawtooth",.14); pb.tick(cnt); sparkle(stage);
     btn.style.transform="translateX(-50%) scale(.82)"; setTimeout(()=>btn.style.transform="translateX(-50%)",100);   // 단추 눌림
     wrap.style.transform="rotate("+(cnt%2?5:-5)+"deg)"; setTimeout(()=>{ if(!done)wrap.style.transform=""; },110);   // 믹서기 드르륵
@@ -1527,7 +1558,7 @@ function buildFlip(w, pan, cake, flips){
     </div>`, "⤴️ 위로 휙 3번 뒤집어요");
   const act=w.querySelector("#act"),cake_=w.querySelector("#cake"),pov=w.querySelector(".pov"),
         panart=w.querySelector("#panart"),arm=w.querySelector("#arm");
-  const pb=pipbar(w,flips); let down=false,sy=0,st=0,done=false,cnt=0,busy=false;
+  const pb=pipbar(w,flips); let down=false,sy=0,st=0,done=false,cnt=0,busy=false; SND.start("sizzle");
   act.addEventListener("pointerdown",e=>{down=true;sy=e.clientY;st=Date.now();try{act.setPointerCapture(e.pointerId);}catch(_){}});
   const up=e=>{ if(!down||done||busy)return; down=false; const dy=sy-e.clientY, dt=Date.now()-st;
     if(dy>50 && dt<600){ busy=true; cnt++; SND.pop(); pb.tick(cnt); sparkle(pov); vib(25);
@@ -1535,7 +1566,7 @@ function buildFlip(w, pan, cake, flips){
       panart.style.transform="translateY(2.6vmin)"; arm.style.transform="translateX(-50%) translateY(2.6vmin)";   // 팬 잡은 손이 아래로 눌리는 반동
       setTimeout(()=>{panart.style.transform="";arm.style.transform="translateX(-50%)";},220);
       setTimeout(()=>{cake_.style.transform="";},560);
-      setTimeout(()=>{ busy=false; if(cnt>=flips&&!done){done=true;SND.good();setTimeout(succeed,250);} },900); } };
+      setTimeout(()=>{ busy=false; if(cnt>=flips&&!done){done=true;SND.stop("sizzle");SND.good();setTimeout(succeed,250);} },900); } };
   act.addEventListener("pointerup",up);act.addEventListener("pointercancel",()=>down=false);
 }
 /* 5) 까기 — 아래로 쓸어 껍질 벗기기 */
@@ -1680,9 +1711,9 @@ function buildBake(w, opts){ opts=opts||{};
     food.style.filter="brightness("+(1-p*0.0032)+") saturate("+(1+p*0.006)+")"; beep(200+p*3,.04,"sawtooth",.07);
     const m=Math.floor(p/25); if(m>mark){mark=m;sparkle(stage);}
     if(p>=100){done=true;clearInterval(timer);timer=null;heat.style.height="0";food.style.filter="";
-      food.innerHTML=art(opts.toImg,opts.toEmoji||opts.fromEmoji||"🍞");SND.good();vib(40);setTimeout(succeed,400);} }
-  const start=()=>{ if(done||timer)return; timer=setInterval(tick,80); };
-  const stop=()=>{ if(timer){clearInterval(timer);timer=null;} };
+      food.innerHTML=art(opts.toImg,opts.toEmoji||opts.fromEmoji||"🍞");SND.stop("sizzle");SND.good();vib(40);setTimeout(succeed,400);} }
+  const start=()=>{ if(done||timer)return; timer=setInterval(tick,80); SND.start("sizzle"); };
+  const stop=()=>{ if(timer){clearInterval(timer);timer=null;} SND.stop("sizzle"); };
   btn.addEventListener("pointerdown",e=>{e.preventDefault();start();});
   btn.addEventListener("pointerup",stop);btn.addEventListener("pointercancel",stop);btn.addEventListener("pointerleave",stop);
 }
@@ -1805,12 +1836,12 @@ function buildOven(w, opts){ opts=opts||{};
   function tick(){ if(done)return; p+=3; glow.style.opacity=Math.min(.9,p/100);
     doorwin.style.background=`rgba(255,${170-p},40,${.25+p*0.004})`; beep(180+p*3,.04,"sawtooth",.06);
     if(p>=100){ done=true; clearInterval(timer); timer=null; cookbtn.style.display="none"; tdisp.textContent="0:00";
-      SND.ding(); vib([60,40,60]);
+      SND.stop("sizzle"); SND.ding(); vib([60,40,60]);
       setTimeout(()=>{ door.style.transform="rotateX(78deg)"; glow.style.opacity=0; doorwin.style.background="rgba(170,205,235,.3)";
         if(opts.doneImg&&IMG[opts.doneImg]) inFood.innerHTML=`<img class="land" src="${IMG[opts.doneImg]}" style="width:100%;display:block;">`;
         sparkle(stage); setHint("🎉 완성!"); setTimeout(succeed,700); },500); } }
-  cookbtn.addEventListener("pointerdown",e=>{e.preventDefault(); if(phase===4&&!timer&&!done)timer=setInterval(tick,80);});
-  const stop=()=>{if(timer){clearInterval(timer);timer=null;}};
+  cookbtn.addEventListener("pointerdown",e=>{e.preventDefault(); if(phase===4&&!timer&&!done){timer=setInterval(tick,80); SND.start("sizzle");}});
+  const stop=()=>{if(timer){clearInterval(timer);timer=null;} SND.stop("sizzle");};
   cookbtn.addEventListener("pointerup",stop);cookbtn.addEventListener("pointercancel",stop);cookbtn.addEventListener("pointerleave",stop);
 }
 
@@ -1972,7 +2003,7 @@ function goPrep(phase){
   foam.style.height="0"; cnt.textContent="0 / 10";
   let count=0,dir=0,lastX=null,dn=false,ok=false;
   const amt=useSep?5:2.4, rot=useSep?6:3;
-  sink.onpointerdown=e=>{dn=true;lastX=e.clientX;try{sink.setPointerCapture(e.pointerId);}catch(_){}
+  sink.onpointerdown=e=>{dn=true;lastX=e.clientX;try{sink.setPointerCapture(e.pointerId);}catch(_){} SND.start("water");
     if(useSep&&IMG.basinWater) sink.style.backgroundImage="url("+IMG.basinWater+")";};  // 씻기 시작=물 나오는 세면대
   sink.onpointermove=e=>{ if(!dn||ok)return; const dx=e.clientX-lastX;
     if(Math.abs(dx)>6){ const nd=Math.sign(dx);
@@ -1983,7 +2014,7 @@ function goPrep(phase){
           if(phase==="after"){ SND.good(); say("손이 깨끗해요! 다 했어요."); setTimeout(finishCooking,800); }
           else { SND.good(); say("깨끗해요! 이제 만들어요."); stepIdx=0; setTimeout(renderStep,800); } } }
       lastX=e.clientX; } };
-  sink.onpointerup=()=>{dn=false;wi.style.transform=baseT;}; sink.onpointercancel=()=>{dn=false;wi.style.transform=baseT;};
+  sink.onpointerup=()=>{dn=false;wi.style.transform=baseT;SND.stop("water");}; sink.onpointercancel=()=>{dn=false;wi.style.transform=baseT;SND.stop("water");};
 }
 function bubble(sink){ const b=document.createElement("div"); b.className="bubble";
   b.style.left=(20+Math.random()*60)+"%"; b.style.bottom=(18+Math.random()*28)+"%"; sink.appendChild(b);
