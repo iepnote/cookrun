@@ -306,6 +306,15 @@
     border:.9vmin solid transparent;border-top:1.8vmin solid #fffdf8;border-bottom:none;
     filter:drop-shadow(0 .45vmin 0 var(--line));}
 
+  /* 유령 손 시범(수준 가·나) + 힌트 숨김(수준 다) */
+  .ghost{position:absolute;left:50%;top:45%;z-index:60;opacity:.55;pointer-events:none;transform:translate(-50%,-50%);}
+  .ghost-lr{animation:g-lr 1.2s ease-in-out infinite alternate;} @keyframes g-lr{from{transform:translate(-110%,-50%)}to{transform:translate(10%,-50%)}}
+  .ghost-circle{animation:g-circ 1.6s linear infinite;} @keyframes g-circ{from{transform:translate(-50%,-50%) rotate(0) translateX(9vmin) rotate(0)}to{transform:translate(-50%,-50%) rotate(360deg) translateX(9vmin) rotate(-360deg)}}
+  .ghost-down{animation:g-down 1.1s ease-in infinite;} @keyframes g-down{from{transform:translate(-50%,-120%)}to{transform:translate(-50%,20%)}}
+  .ghost-up{animation:g-up .8s ease-out infinite;} @keyframes g-up{from{transform:translate(-50%,10%)}to{transform:translate(-50%,-120%)}}
+  .ghost-tap{animation:g-tap .7s ease-in-out infinite alternate;} @keyframes g-tap{from{transform:translate(-50%,-50%) scale(1)}to{transform:translate(-50%,-50%) scale(.8)}}
+  .ghost-drag{animation:g-drag 1.6s ease-in-out infinite;} @keyframes g-drag{from{transform:translate(60%,-50%)}to{transform:translate(-50%,-50%)}}
+  body.nohint .bubblehint,body.nohint .povhint{display:none;} body.nohint .hintglow{animation:none;}
   /* 위치 편집기 */
   body.editing [data-edit]{outline:.3vmin dashed #2a7;}
   body.editing .ed-sel{outline:.5vmin solid #e0392b !important;}
@@ -738,6 +747,38 @@ function renderStudents(){ const el=document.getElementById("set-students"); if(
   el.querySelectorAll("[data-pid]").forEach(c=>c.onclick=()=>{ const p=PROF.list().find(x=>x.id===c.dataset.pid); if(!p)return; p.level=p.level==="가"?"나":p.level==="나"?"다":"가"; PROF.update(p); renderStudents(); say("수준 "+p.level); });
 }
 
+/* ===== 수준 (설계 §3) — 가 0.4 / 나 0.7 / 다 1.0, 힌트·유령 손·다음 단계 고르기 ===== */
+const LEVELS={ "가":{k:.4,hint:true,ghost:true,choose:false}, "나":{k:.7,hint:true,ghost:true,choose:false}, "다":{k:1,hint:false,ghost:false,choose:true} };
+function LV(){ const p=PROF.cur(); const n=(p&&LEVELS[p.level])?p.level:"나"; return Object.assign({name:n},LEVELS[n]); }
+function N(base){ return Math.max(2,Math.round(base*LV().k)); }
+let GHOST_T=null, GHOST_EL=null, GHOST_W=null;
+function ghostClear(){ clearTimeout(GHOST_T); GHOST_T=null; if(GHOST_EL){GHOST_EL.remove();GHOST_EL=null;} }
+function ghost(w,type){ ghostClear(); if(!type||!LV().ghost)return;
+  const arm=()=>{ GHOST_T=setTimeout(()=>{ if(!w.isConnected)return; const st=w.querySelector(".plate-stage,.pov")||w; GHOST_EL=document.createElement("div"); GHOST_EL.className="ghost ghost-"+type; GHOST_EL.innerHTML=holdHand(0); st.appendChild(GHOST_EL); },8000); };
+  if(GHOST_W!==w){ GHOST_W=w; w.addEventListener("pointerdown",()=>{ if(GHOST_EL){GHOST_EL.remove();GHOST_EL=null;} clearTimeout(GHOST_T); if(GHOST_T!==null)arm(); }); }
+  arm(); }
+/* 화면 구성으로 제스처 종류를 추정(빌더를 건드리지 않음) */
+function ghostTypeOf(w){
+  if(w.querySelector("#stream"))return "drag";                       // 붓기
+  if(w.querySelector("#ring"))return "circle";                       // 젓기
+  if(w.querySelector("#knife,#fr"))return "down";                    // 썰기·까기
+  if(w.querySelector("#cake"))return "up";                           // 뒤집기
+  if(w.querySelector("#mxbtn,#kh,#bakebtn,#bottle,#egg"))return "tap";
+  if(w.querySelector("#rub,#dishwash"))return "lr";                  // 문지르기·흔들기
+  if(w.querySelector(".drag"))return "drag";
+  return null; }
+function applyHint(){ document.body.classList.toggle("nohint",!LV().hint); }
+let CHOSEN_OK={};
+function renderChoose(){ show("s-step"); setHead(null); band(); ghostClear();
+  const s=STEPS[stepIdx]; const others=STEPS.filter((x,i)=>i!==stepIdx); const o=others[Math.floor(Math.random()*others.length)];
+  const cards=[{s:s,ok:1},{s:o,ok:0}].sort(()=>Math.random()-.5);
+  document.getElementById("g-text").textContent="다음은 무엇일까요?"; fitText(document.getElementById("g-text")); say("다음은 무엇일까요? 맞는 그림을 눌러요.");
+  document.getElementById("g-say").onclick=()=>say("다음은 무엇일까요? 맞는 그림을 눌러요.");
+  const w=document.getElementById("work"); w.style.transform="";
+  w.innerHTML=`<div id="choose" style="display:flex;gap:4vmin;align-items:flex-start;justify-content:center;">`+cards.map(c=>`<div class="ccard" data-ok="${c.ok}" style="cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:.8vmin;"><div class="card" style="cursor:pointer;">${c.s.card()}</div><div class="nm">${c.s.label}</div></div>`).join("")+`</div>`;
+  w.querySelectorAll(".ccard").forEach(el=>el.onclick=()=>{ if(el.dataset.ok==="1"){ SND.good(); CHOSEN_OK[stepIdx]=true; setTimeout(renderStep,500); }
+    else { el.classList.remove("shake"); void el.offsetWidth; el.classList.add("shake"); beep(200,.12,"sine",.18); say("아니에요. 순서를 다시 보세요."); w.querySelector('[data-ok="1"] .card').classList.add("hintglow"); } }); }
+
 /* 데이터 — 모든 재료 img 키 부여(이미지 없으면 이모지) */
 const PANTRY={
   bread:{nm:"식빵",e:"🍞",img:"breadBot"}, jam:{nm:"잼",e:"🍓",img:"jam"}, ham:{nm:"햄",e:"🍖",img:"ham"},
@@ -1136,7 +1177,8 @@ function succeed(){ if(curScreen()==="s-edit"){ SND.good(); toast("좋아요!");
   SND.good(); const s=STEPS[stepIdx]; toast(s.praise+"!"); say(s.praise);
   const wait=Math.max(1200, COOK_MIN_MS-(Date.now()-cookT0)); setTimeout(nextStep,wait); }
 function renderStep(){
-  show("s-step"); setHead(null); band();
+  if(LV().choose&&stepIdx>0&&!CHOSEN_OK[stepIdx]&&curScreen()!=="s-edit"){ renderChoose(); return; }   // '다' 수준: 다음 단계 고르기
+  show("s-step"); setHead(null); band(); applyHint(); ghostClear();
   cookT0=Date.now(); SND.stopAll();   // 단계 시작 시각(최소 3초 보장용)
   const s=STEPS[stepIdx];
   document.getElementById("g-text").textContent=s.text; fitText(document.getElementById("g-text"));
@@ -1147,6 +1189,7 @@ function renderStep(){
   const sc=(currentDish&&currentDish.scale&&currentDish.scale!==1)?currentDish.scale:null;
   w.style.transform=sc?`scale(${sc})`:""; w.style.transformOrigin="50% 38%";
   STEPS[stepIdx].build(w);
+  ghost(w, ghostTypeOf(w));   // 8초 무입력이면 유령 손 시범(가·나 수준)
 }
 function wholeSandwich(){ return `<img class="base" src="${IMG.hero}">`; }
 
@@ -1192,7 +1235,7 @@ function buildSpread(w){
   </div>`;
   const spoon=w.querySelector("#spoon"), spimg=w.querySelector("#spimg"), lid=w.querySelector("#lid"),
         jamOv=w.querySelector("#jam"), jarEl=w.querySelector("#jarbox"), breadEl=w.querySelector(".sand");
-  let phase=0,cnt=0,dir=0,lx=null,done=false;   // phase 0=닫힘 1=열림 2=잼 뜸
+  let phase=0,cnt=0,dir=0,lx=null,done=false; const need=N(10);   // phase 0=닫힘 1=열림 2=잼 뜸
   const inside=(el,x,y)=>{const r=el.getBoundingClientRect();return x>=r.left&&x<=r.right&&y>=r.top&&y<=r.bottom;};
   drag(spoon,(tx,ty,e)=>{ if(done||!e)return;
     const x=e.clientX, y=e.clientY;   // 판정은 반드시 클라이언트 좌표(드래그 tx/ty는 translate 오프셋)
@@ -1209,8 +1252,8 @@ function buildSpread(w){
       if(lx==null){ lx=x; return; }
       const dx=x-lx;
       if(Math.abs(dx)>14){ lx=x; const nd=Math.sign(dx);   // 좌우 방향이 바뀔 때마다 1회
-        if(nd!==dir){ dir=nd; cnt++; SND.pop(); jamOv.style.opacity=Math.min(1,cnt/10);
-          if(cnt>=10){ done=true; SND.good(); spoon.style.transition="opacity .4s"; spoon.style.opacity=0; succeed(); } } } }
+        if(nd!==dir){ dir=nd; cnt++; SND.pop(); jamOv.style.opacity=Math.min(1,cnt/need);
+          if(cnt>=need){ done=true; SND.good(); spoon.style.transition="opacity .4s"; spoon.style.opacity=0; succeed(); } } } }
   }, ()=>{ lx=null; });
 }
 
@@ -1338,7 +1381,7 @@ function rubMix(w, baseHTML, overlayHTML, hint){
     <div class="bubblehint" style="top:-8vmin;">${hint||"👆↔️ 문질러요"}</div>
   </div>`;
   const rub=w.querySelector("#rub"),ov=w.querySelector("#ov"),hand=w.querySelector("#rubhand");
-  let dist=0,last=null,down=false,done=false;const need=800;
+  let dist=0,last=null,down=false,done=false;const need=Math.round(800*LV().k);
   rub.addEventListener("pointerdown",e=>{down=true;last=e.clientX;try{rub.setPointerCapture(e.pointerId);}catch(_){}});
   rub.addEventListener("pointermove",e=>{ if(!down||done)return; dist+=Math.abs(e.clientX-last);last=e.clientX;
     const r=rub.getBoundingClientRect();   // 손이 문지르는 위치를 따라감
@@ -1374,7 +1417,7 @@ function buildWashFruit(w, content){
   </div>`;
   const stage=w.querySelector(".plate-stage"),rub=w.querySelector("#rub"),fr=w.querySelector("#wfr"),
         st=w.querySelector("#wstream"),hand=w.querySelector("#rubhand");
-  const need=8, pb=pipbar(w,need);
+  const need=N(8), pb=pipbar(w,need);
   let last=null,dir=0,cnt=0,down=false,done=false;
   rub.addEventListener("pointerdown",e=>{down=true;last=e.clientX;st.style.opacity=1; SND.start("water");   // 문지르기 시작=물 틀기
     try{rub.setPointerCapture(e.pointerId);}catch(_){}});
@@ -1396,7 +1439,7 @@ function buildWashFruit(w, content){
 function buildJuiceWash(w){ buildWashFruit(w); }
 /* 흔들기(공용) — 좌우로 흔들기(방향전환 N회). content=흔들 대상 HTML */
 function buildShake(w, opts){ opts=opts||{};
-  const content=opts.content||fruitCluster("14vmin"), need=opts.need||6, hint=opts.hint||"👆↔️ 좌우로 흔들어요";
+  const content=opts.content||fruitCluster("14vmin"), need=N(opts.need||6), hint=opts.hint||"👆↔️ 좌우로 흔들어요";
   w.innerHTML=`<div class="plate-stage">
     <div id="shaker" style="position:relative;transition:transform .08s;">${content}
       <div style="position:absolute;left:-5vmin;top:46%;z-index:3;">${holdHand(22,"8vmin")}</div>
@@ -1460,13 +1503,13 @@ function buildJuicePut(w){
 }
 /* 5) 갈기 — 믹서기 몸통의 단추를 10번 꾹꾹 누르기(별도 버튼 없이, 말풍선 안내) */
 function buildJuiceBlend(w){
-  const taps=10;
+  const taps=N(10);
   w.innerHTML=`<div class="plate-stage device" id="stage">
     <div id="mxwrap" style="position:relative;display:inline-block;transition:transform .08s;">
       ${IMG.jBlenderFull?`<img id="mx" src="${IMG.jBlenderFull}" style="width:80%;display:block;margin:0 auto;">`:`<div id="mx" class="cardemoji" style="font-size:clamp(150px,36vmin,380px);">🫙</div>`}
       <div id="mxbtn" class="hintglow" style="position:absolute;left:50%;bottom:11%;transform:translateX(-50%);width:7vmin;height:7vmin;border-radius:50%;
         background:radial-gradient(circle at 34% 30%,#ff8a80,#e0392b);border:.5vmin solid #fff;box-shadow:0 .5vmin 1vmin rgba(0,0,0,.25);cursor:pointer;"></div>
-      <div class="bubblehint" style="top:auto;bottom:24%;">🖐️ 빨간 단추를 꾹꾹 10번 눌러요</div>
+      <div class="bubblehint" style="top:auto;bottom:24%;">🖐️ 빨간 단추를 꾹꾹 ${taps}번 눌러요</div>
     </div>
   </div>`;
   const stage=w.querySelector("#stage"),wrap=w.querySelector("#mxwrap"),mx=w.querySelector("#mx"),btn=w.querySelector("#mxbtn");
@@ -1513,7 +1556,7 @@ function buildStir(w, vessel, tool, from, toolFade, toolDeg){
     <div class="tool" id="tool"><div style="position:relative;transform:rotate(${toolDeg||0}deg);">${toolArt}<div class="gripslot">${gripHand(0,"6.5vmin")}</div></div></div>`, "🔄 빙글빙글 저어요");
   const pov=w.querySelector(".pov"),act=w.querySelector("#act"),tool_=w.querySelector("#tool"),ov=w.querySelector("#mixov"),
         swirl=w.querySelector("#swirl"),bowlin=w.querySelector("#bowlin");
-  const TURNS=10, need=Math.PI*2*TURNS, pb=pipbar(w,TURNS);   // 같은 방향 열 바퀴(바퀴마다 진행 점)
+  const TURNS=N(10), need=Math.PI*2*TURNS, pb=pipbar(w,TURNS);   // 같은 방향 열 바퀴(바퀴마다 진행 점)
   let total=0,last=null,down=false,done=false,mark=0;
   function ctr(){const r=pov.getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height*0.46};}
   act.addEventListener("pointerdown",e=>{down=true;const c=ctr();last=Math.atan2(e.clientY-c.y,e.clientX-c.x);try{act.setPointerCapture(e.pointerId);}catch(_){}});
@@ -1546,7 +1589,7 @@ function buildPour(w, bottle, target, grip, name){
   let down=false,done=false,fillv=0,pouring=false,timer=null,said=false;
   function stopPour(){ pouring=false; stream.style.opacity="0"; bot.style.transform="translate(-50%,-50%)"; }
   function tick(){ if(done)return; if(!fill.isConnected){clearInterval(timer);return;}   // 단계 이탈 시 타이머 정리
-    if(!pouring)return; fillv=Math.min(100,fillv+2.2); fill.style.height=(fillv*0.5)+"%";   // 기울인 동안 시간 기반으로 차오름
+    if(!pouring)return; fillv=Math.min(100,fillv+2.2/LV().k); fill.style.height=(fillv*0.5)+"%";   // 기울인 동안 시간 기반으로 차오름
     if(fillv%12<2.2)beep(280+fillv*1.4,.06,"sine",.07);   // 졸졸
     if(fillv>=100){ done=true; clearInterval(timer); stopPour(); SND.good(); setTimeout(succeed,300); } }
   timer=setInterval(tick,60);
@@ -1566,7 +1609,7 @@ function buildPour(w, bottle, target, grip, name){
 }
 /* 3) 반복 썰기 — 재료를 도마 위에 가로로 눕히고, 칼날이 그 위를 좌우로 오가며 내리썰기. layDeg=세로 그림 눕히는 각도(바나나 90) */
 function buildSliceRepeat(w, food, pieces, sliced, unit, layDeg){
-  pieces=pieces||4; unit=(unit&&IMG[unit])?unit:null; layDeg=layDeg||0;
+  pieces=N(pieces||4); unit=(unit&&IMG[unit])?unit:null; layDeg=layDeg||0;
   w.innerHTML=povStage(`
     <div class="povfood" id="food" style="top:60%;"><div id="foodrot" style="width:100%;height:100%;transform:rotate(${layDeg}deg);transition:transform .1s;">${gart(food||"🥕")}</div></div>
     <div id="hold" style="position:absolute;left:12%;top:50%;z-index:5;transition:transform .1s;">${holdHand(0,"10vmin")}</div>
@@ -1591,7 +1634,7 @@ function buildSliceRepeat(w, food, pieces, sliced, unit, layDeg){
 }
 /* 4) 뒤집기 — 위로 빠르게 플릭 3번. 큰 팬 중앙의 팬케이크, 손잡이를 쥔 팔이 아래로 이어짐 */
 function buildFlip(w, pan, cake, flips){
-  flips=flips||3;
+  flips=N(flips||3);
   const armArt = IMG.gripArm ? `<img src="${IMG.gripArm}" style="width:13vmin;display:block;">`   // 팔 그림(쿠킹런-손-팔쥔손.png) 있으면 사용
     : `${gripHand(0,"10vmin")}<div style="width:6.4vmin;height:22vmin;background:linear-gradient(90deg,#eeb489,#f7cfa6 45%,#e3a374);border:.55vmin solid #5b4632;border-top:none;border-radius:0 0 3vmin 3vmin;margin-top:-1.2vmin;"></div>`;
   w.innerHTML=povStage(`
@@ -1599,7 +1642,7 @@ function buildFlip(w, pan, cake, flips){
       <div id="panart" style="width:100%;height:100%;transition:transform .16s;">${gart(pan||"🍳")}</div>
       <div id="cake" style="position:absolute;left:26%;top:11%;width:48%;height:48%;transition:transform .55s cubic-bezier(.3,.55,.35,1);">${gart(cake||"🥞")}</div>
       <div id="arm" style="position:absolute;left:50%;top:70%;transform:translateX(-50%);z-index:3;display:flex;flex-direction:column;align-items:center;transition:transform .16s;">${armArt}</div>
-    </div>`, "⤴️ 위로 휙 3번 뒤집어요");
+    </div>`, `⤴️ 위로 휙 ${flips}번 뒤집어요`);
   const act=w.querySelector("#act"),cake_=w.querySelector("#cake"),pov=w.querySelector(".pov"),
         panart=w.querySelector("#panart"),arm=w.querySelector("#arm");
   const pb=pipbar(w,flips); let down=false,sy=0,st=0,done=false,cnt=0,busy=false; SND.start("sizzle");
@@ -1618,7 +1661,7 @@ function buildPeel(w, whole, peeled){
   w.innerHTML=povStage(`<div class="povfood" id="fr">${gart(whole||"🍌")}
     <div style="position:absolute;left:50%;bottom:-8%;transform:translateX(-50%);z-index:3;">${holdHand(0,"9vmin")}</div></div>`, "👇 아래로 쓸어 껍질을 까요");
   const act=w.querySelector("#act"),fr=w.querySelector("#fr"),pov=w.querySelector(".pov");
-  const NEED=5, pb=pipbar(w,NEED);   // 아래로 5번 쓸어내리기
+  const NEED=N(5), pb=pipbar(w,NEED);   // 아래로 5번 쓸어내리기
   let peels=0,down=false,sy=0,done=false;
   act.addEventListener("pointerdown",e=>{down=true;sy=e.clientY;try{act.setPointerCapture(e.pointerId);}catch(_){}});
   act.addEventListener("pointermove",e=>{ if(!down||done)return; if(e.clientY-sy>70){ sy=e.clientY; peels++; SND.pop(); sparkle(pov); pb.tick(peels);
@@ -1656,7 +1699,7 @@ function buildShow(w, imgSrc, text){
 /* ===== 신규 제스처 툴킷 (v19) ===== */
 /* 뜨기 — 숟가락으로 소스통에서 떠서 그릇에 담기(N회). 영역판정은 e.clientX/Y 사용(중요) */
 function buildScoop(w, opts){ opts=opts||{};
-  const scoops=opts.scoops||3, hint=opts.hint||"🥄 떠서 그릇에 담아요";
+  const scoops=N(opts.scoops||3), hint=opts.hint||"🥄 떠서 그릇에 담아요";
   const blob=opts.blobHTML||`<span style="font-size:5vmin;">${opts.toEmoji||"🍚"}</span>`;  // 숟가락·그릇 위 내용물(기본 이모지, blobHTML로 교체 가능)
   const srcArt = opts.srcImg&&IMG[opts.srcImg]?`<img src="${IMG[opts.srcImg]}" style="width:100%;display:block;">`:`<div class="cardemoji" style="font-size:16vmin;">${opts.srcEmoji||"🍚"}</div>`;
   const spoonArt = IMG.spoon?`<img src="${IMG.spoon}" style="width:100%;display:block;">`:`<div style="font-size:9vmin;">🥄</div>`;  // 볼 위·손잡이 아래(아이 쪽)
@@ -1698,7 +1741,7 @@ function creamBagHTML(){ if(IMG.creamBag) return `<img src="${IMG.creamBag}" sty
     <div style="width:0;height:0;border-left:4.5vmin solid transparent;border-right:4.5vmin solid transparent;border-top:11vmin solid #fff;filter:drop-shadow(0 0 .3vmin #c9b9a8);"></div>
     <div style="width:2vmin;height:2.4vmin;background:#f7c9d8;border:.3vmin solid #c98aa3;border-top:none;border-radius:0 0 40% 40%;margin-top:-.2vmin;"></div></div>`; }
 function buildSqueeze(w, opts){ opts=opts||{};
-  const pumps=opts.pumps||4, hint=opts.hint||"⬇️ 아래로 짜요", color=opts.color||"#e0392b";
+  const pumps=N(opts.pumps||4), hint=opts.hint||"⬇️ 아래로 짜요", color=opts.color||"#e0392b";
   const foodArt = opts.foodHTML || (opts.foodImg&&IMG[opts.foodImg]?`<img src="${IMG[opts.foodImg]}" style="width:100%;display:block;">`:`<div class="cardemoji" style="font-size:20vmin;">${opts.foodEmoji||"🌭"}</div>`);
   const bottleArt = opts.bottleHTML || `<span style="font-size:11vmin;line-height:1;">${opts.bottleEmoji||"🥫"}</span>`;
   w.innerHTML=`<div class="plate-stage" id="stage">
@@ -1726,7 +1769,7 @@ function buildSqueeze(w, opts){ opts=opts||{};
 }
 /* 뭉치기 — 반복해서 눌러 모양 만들기(N회 탭). 자폐아동 친화 반복·촉각 */
 function buildKnead(w, opts){ opts=opts||{};
-  const taps=opts.taps||5, hint=opts.hint||"👐 꾹꾹 눌러 뭉쳐요";
+  const taps=N(opts.taps||5), hint=opts.hint||"👐 꾹꾹 눌러 뭉쳐요";
   const art=(k,e)=>k&&IMG[k]?`<img src="${IMG[k]}" style="width:100%;height:100%;object-fit:contain;">`:`<div class="cardemoji" style="font-size:20vmin;">${e}</div>`;
   w.innerHTML=`<div class="plate-stage" id="stage">
     <div id="lump" style="width:var(--sz-food);height:var(--sz-food);margin:0 auto;display:flex;align-items:center;justify-content:center;transition:transform .1s;">${art(opts.fromImg,opts.fromEmoji||"🍚")}</div>
@@ -1751,7 +1794,7 @@ function buildBake(w, opts){ opts=opts||{};
   </div>`;
   const stage=w.querySelector("#stage"),food=w.querySelector("#food"),heat=w.querySelector("#heat"),btn=w.querySelector("#bakebtn");
   let p=0,done=false,timer=null,mark=0;
-  function tick(){ if(done)return; p+=3; heat.style.height=Math.min(56,p*0.56)+"%";
+  function tick(){ if(done)return; p+=3/LV().k; heat.style.height=Math.min(56,p*0.56)+"%";
     food.style.filter="brightness("+(1-p*0.0032)+") saturate("+(1+p*0.006)+")"; beep(200+p*3,.04,"sawtooth",.07);
     const m=Math.floor(p/25); if(m>mark){mark=m;sparkle(stage);}
     if(p>=100){done=true;clearInterval(timer);timer=null;heat.style.height="0";food.style.filter="";
@@ -1785,7 +1828,7 @@ function buildSpreadSauce(w, opts){ opts=opts||{};
   <div class="bubblehint" style="position:fixed;left:50%;bottom:3vmin;top:auto;z-index:20;">${opts.hint||"🥄 소스를 떠서 빵에 발라요"}</div>`;
   const spoon=w.querySelector("#spoon"),load=w.querySelector("#spload"),pot=w.querySelector("#potbox"),
         base=w.querySelector("#base"),ov=w.querySelector("#sauceov");
-  let loaded=false,cnt=0,dir=0,lx=null,done=false;
+  let loaded=false,cnt=0,dir=0,lx=null,done=false; const need=N(10);
   const inside=(el,x,y)=>{const r=el.getBoundingClientRect();return x>=r.left&&x<=r.right&&y>=r.top&&y<=r.bottom;};
   drag(spoon,(tx,ty,e)=>{ if(done||!e)return; const x=e.clientX,y=e.clientY;   // 판정은 클라이언트 좌표
     if(!loaded){ if(inside(pot,x,y)){ loaded=true; load.style.opacity=1; SND.pop(); say("소스를 떴어요. 빵 위에서 좌우로 발라요."); } }
@@ -1793,13 +1836,13 @@ function buildSpreadSauce(w, opts){ opts=opts||{};
       if(lx==null){ lx=x; return; }
       const dx=x-lx;
       if(Math.abs(dx)>14){ lx=x; const nd=Math.sign(dx);
-        if(nd!==dir){ dir=nd; cnt++; SND.pop(); ov.style.opacity=Math.min(1,cnt/10);
-          if(cnt>=10){ done=true; SND.good(); spoon.style.transition="opacity .4s"; spoon.style.opacity=0; succeed(); } } } }
+        if(nd!==dir){ dir=nd; cnt++; SND.pop(); ov.style.opacity=Math.min(1,cnt/need);
+          if(cnt>=need){ done=true; SND.good(); spoon.style.transition="opacity .4s"; spoon.style.opacity=0; succeed(); } } } }
   }, ()=>{ lx=null; });
 }
 /* 가루 뿌리기 — 위에서 흔들면 가루가 날려 아래 음식에 쌓임 */
 function buildSprinkle(w, opts){ opts=opts||{};
-  const need=opts.need||6, hint=opts.hint||"↔️ 흔들어 뿌려요", color=opts.color||"#ffd766";
+  const need=N(opts.need||6), hint=opts.hint||"↔️ 흔들어 뿌려요", color=opts.color||"#ffd766";
   w.innerHTML=`<div class="plate-stage" id="stage" style="padding-bottom:6vmin;">
     <div id="shaker" style="position:relative;width:38%;margin:0 auto;transition:transform .08s;z-index:5;">${opts.shakerHTML||`<div class="cardemoji" style="font-size:13vmin;">🧀</div>`}
       <div style="position:absolute;left:-4.5vmin;top:40%;z-index:3;">${holdHand(22,"7vmin")}</div>
@@ -1877,7 +1920,7 @@ function buildOven(w, opts){ opts=opts||{};
       setTimeout(()=>{cookbtn.style.display="block";},400); } }
   btnMin.addEventListener("pointerdown",e=>{e.preventDefault();timeSet("min");});
   btnSec.addEventListener("pointerdown",e=>{e.preventDefault();timeSet("sec");});
-  function tick(){ if(done)return; p+=3; glow.style.opacity=Math.min(.9,p/100);
+  function tick(){ if(done)return; p+=3/LV().k; glow.style.opacity=Math.min(.9,p/100);
     doorwin.style.background=`rgba(255,${170-p},40,${.25+p*0.004})`; beep(180+p*3,.04,"sawtooth",.06);
     if(p>=100){ done=true; clearInterval(timer); timer=null; cookbtn.style.display="none"; tdisp.textContent="0:00";
       SND.stop("sizzle"); SND.ding(); vib([60,40,60]);
@@ -2045,7 +2088,7 @@ function goPrep(phase){
   } else {
     sink.style.background=""; if(IMG.washimg)wi.src=IMG.washimg; wi.style.transition="transform .12s";
   }
-  foam.style.height="0"; cnt.textContent="0 / 10";
+  const wneed=N(10); foam.style.height="0"; cnt.textContent="0 / "+wneed;
   let count=0,dir=0,lastX=null,dn=false,ok=false;
   const amt=useSep?5:2.4, rot=useSep?6:3;
   sink.onpointerdown=e=>{dn=true;lastX=e.clientX;try{sink.setPointerCapture(e.pointerId);}catch(_){} SND.start("water");
@@ -2053,9 +2096,9 @@ function goPrep(phase){
   sink.onpointermove=e=>{ if(!dn||ok)return; const dx=e.clientX-lastX;
     if(Math.abs(dx)>6){ const nd=Math.sign(dx);
       wi.style.transform=baseT+" translateX("+(nd*amt)+"vmin) rotate("+(nd*rot)+"deg)"; bubble(sink);  // 손만 좌우로 비비기+거품
-      if(nd!==0&&nd!==dir){ dir=nd; count++; cnt.textContent=count+" / 10"; SND.pop(); splash(sink);  // 물방울 튀기기
-        if(!useSep) foam.style.height=Math.min(100,count/10*100)+"%";
-        if(count>=10){ ok=true; wi.style.transform=baseT;
+      if(nd!==0&&nd!==dir){ dir=nd; count++; cnt.textContent=count+" / "+wneed; SND.pop(); splash(sink);  // 물방울 튀기기
+        if(!useSep) foam.style.height=Math.min(100,count/wneed*100)+"%";
+        if(count>=wneed){ ok=true; wi.style.transform=baseT;
           if(phase==="after"){ SND.good(); say("손이 깨끗해요! 다 했어요."); setTimeout(finishCooking,800); }
           else { SND.good(); say("깨끗해요! 이제 만들어요."); stepIdx=0; setTimeout(renderStep,800); } } }
       lastX=e.clientX; } };
@@ -2082,7 +2125,7 @@ function splash(host){ for(let i=0;i<3;i++){ const d=document.createElement("div
   requestAnimationFrame(()=>{ d.style.transform="translate("+dx.toFixed(1)+"vmin,"+dy.toFixed(1)+"vmin) rotate("+(Math.random()*60-30).toFixed(0)+"deg)"; d.style.opacity="0"; });
   setTimeout(()=>d.remove(),580); } }
 function showRecipe(dish){
-  currentDish=dish; STEPS=dish.steps||SANDWICH_STEPS; chosen=[]; stepIdx=0;
+  currentDish=dish; STEPS=dish.steps||SANDWICH_STEPS; chosen=[]; stepIdx=0; CHOSEN_OK={};
   document.getElementById("band").classList.add("hide"); setHead(null);
   show("s-intro");
   // 완성 그림(가운데, 크게) + 요리 이름
@@ -2247,7 +2290,7 @@ document.getElementById("g-say").onclick=()=>say(STEPS[stepIdx].say);
 
 /* ===== 테스트 훅 ===== */
 window.__T={ get STEPS(){return STEPS;}, get stepIdx(){return stepIdx;}, get chosen(){return chosen;},
-  get currentDish(){return currentDish;}, DISHES, PANTRY, SET, IMG, SND, PROF, screen:()=>curScreen(), lastSay:()=>lastSay };
+  get currentDish(){return currentDish;}, DISHES, PANTRY, SET, IMG, SND, PROF, LV, N, screen:()=>curScreen(), lastSay:()=>lastSay };
 applyAssets(); renderChefs(); renderNavChef();
 window.addEventListener("load",()=>setTimeout(()=>say("요리를 만들어요. 시작 단추를 눌러요."),500));
 
