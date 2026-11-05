@@ -2145,14 +2145,17 @@ document.getElementById("g-say").onclick=()=>say(STEPS[stepIdx].say);
   if(/[?&]edit/.test(location.search)) setEdit(true);  // ?edit URL 이면 편집 모드로 시작(미리보기 전용)
 })();
 
+/* ===== 테스트 훅 ===== */
+window.__T={ get STEPS(){return STEPS;}, get stepIdx(){return stepIdx;}, get chosen(){return chosen;},
+  get currentDish(){return currentDish;}, DISHES, PANTRY, SET, IMG, SND, screen:()=>curScreen(), lastSay:()=>lastSay };
 applyAssets();
 window.addEventListener("load",()=>setTimeout(()=>say("요리를 만들어요. 시작 단추를 눌러요."),500));
 
-console.assert(SANDWICH_STEPS.length===5,"샌드위치 5단계(담기 제거)");
-console.assert(JUICE_STEPS.length===5,"주스 5단계");
+console.assert(SANDWICH_STEPS.length===6,"샌드위치 6단계(담기 포함)");
+console.assert(JUICE_STEPS.length===6,"주스 6단계(따르기 포함)");
 console.assert(DISHES.length>=10,"요리 10개 이상");
-console.assert(PANCAKE_STEPS.length===5,"팬케이크 5단계(담기 제거)");
-console.assert(RICEBALL_STEPS.length===2,"주먹밥 2단계(담기 제거)");
+console.assert(PANCAKE_STEPS.length===6,"팬케이크 6단계(담기 포함)");
+console.assert(RICEBALL_STEPS.length===3,"주먹밥 3단계(담기 포함)");
 console.assert(DISHES.filter(d=>d.ready).length===11,"완성 요리 11종(전부 ready)");
 console.assert(DISHES.every(d=>d.steps&&d.steps.length&&typeof d.done==="function"),"모든 요리 steps·done 보유");
 console.assert(["hwachae","yogurt","riceball","hotdog","pizza","cupcake","canape"].every(id=>DISHES.find(d=>d.id===id).ready),"신규 7종 ready");
