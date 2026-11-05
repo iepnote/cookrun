@@ -90,6 +90,12 @@
   .steam{position:absolute;width:4vmin;height:4vmin;border-radius:50%;background:rgba(255,255,255,.75);filter:blur(.6vmin);pointer-events:none;z-index:9;transition:transform 1.6s ease-out,opacity 1.6s;}
   .pantry.gold{border-color:#d4a017;animation:goldglow 1.2s ease-in-out infinite alternate;} @keyframes goldglow{from{box-shadow:0 0 1vmin #ffd56b}to{box-shadow:0 0 3vmin 1vmin #ffd56b}}
   #cat{position:absolute;left:6%;bottom:24%;z-index:3;transform:translateY(120%);transition:transform .6s ease-out;pointer-events:none;} #cat.up{transform:translateY(0);}
+  /* 수도꼭지 손잡이 */
+  .knob{position:absolute;width:var(--sz-hand);height:var(--sz-hand);transform:translate(-50%,-50%);z-index:12;cursor:grab;touch-action:none;}
+  .knobdisc{position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle at 40% 35%,#dfe6ee,#8d9aa8);border:.5vmin solid #5c6b7a;box-shadow:0 .4vmin .8vmin rgba(0,0,0,.3);}
+  .knobdisc:after{content:"";position:absolute;left:46%;top:8%;width:8%;height:40%;background:#3a4653;border-radius:1vmin;}
+  .knob>[data-hand]{position:absolute;left:50%;top:60%;transform:translate(-50%,0);opacity:.9;pointer-events:none;}
+  .knob.on .knobdisc{background:radial-gradient(circle at 40% 35%,#bfe3ff,#4b9ad8);}
   /* 모달 */
   .modal-back{position:fixed;inset:0;background:rgba(0,0,0,.42);z-index:200;
     display:none;align-items:center;justify-content:center;}
@@ -443,7 +449,7 @@
 
   <section class="screen" id="s-prep">
     <div id="sink"><div id="foam"></div><img id="washimg" alt=""></div>
-    <div class="sub">세면대에서 손을 좌우로 열 번 문질러요</div>
+    <div class="sub">수도꼭지를 돌리고, 손을 좌우로 문질러요</div>
     <div id="washcount"></div>
     <button class="speak" data-say="손을 좌우로 열 번 문질러요." style="position:absolute;top:9.5vmin;right:3vmin;">🔊</button>
   </section>
@@ -1534,13 +1540,14 @@ function buildWashFruit(w, content){
     <div id="wfr" style="position:relative;margin-top:7vmin;transition:transform .09s,filter .3s;z-index:2;">${content}</div>
     <div id="rubhand" style="position:absolute;left:50%;top:56%;z-index:5;pointer-events:none;transition:left .06s,top .06s;">${holdHand(0,"6.5vmin")}</div>
     <div id="rub" style="position:absolute;inset:0;cursor:grab;z-index:4;"></div>
-    <div class="bubblehint" style="top:-7vmin;">💧 좌우로 문질러 씻어요</div>
+    <div class="bubblehint" style="top:-7vmin;">🚰 손잡이를 돌리고 좌우로 문질러 씻어요</div>
   </div>`;
   const stage=w.querySelector(".plate-stage"),rub=w.querySelector("#rub"),fr=w.querySelector("#wfr"),
         st=w.querySelector("#wstream"),hand=w.querySelector("#rubhand");
   const need=N(8), pb=pipbar(w,need);
-  let last=null,dir=0,cnt=0,down=false,done=false;
-  rub.addEventListener("pointerdown",e=>{down=true;last=e.clientX;st.style.opacity=1; SND.start("water");   // 문지르기 시작=물 틀기
+  let last=null,dir=0,cnt=0,down=false,done=false,ready=false;
+  knobTurn(stage,{x:64,y:8},()=>{ ready=true; st.style.opacity=1; });   // 손잡이를 돌려야 물이 나옴
+  rub.addEventListener("pointerdown",e=>{ if(!ready){ say("먼저 수도꼭지를 돌려요."); return; } down=true;last=e.clientX;st.style.opacity=1; SND.start("water");   // 문지르기 시작=물 틀기
     try{rub.setPointerCapture(e.pointerId);}catch(_){}});
   rub.addEventListener("pointermove",e=>{ if(!down||done)return;
     const r=rub.getBoundingClientRect();   // 손이 문지르는 위치를 따라감
@@ -1846,6 +1853,20 @@ function buildCrackEgg(w){
   const up=()=>down=false; egg.addEventListener("pointerup",up); egg.addEventListener("pointercancel",up);
 }
 function EGG_STEP(){ return {id:0,label:"달걀 깨기",text:"달걀을 깨요",say:"달걀을 그릇에 톡톡 치고 아래로 끌어 깨요",praise:"잘했어요",build:buildCrackEgg,card:pcard(["egg"],"🥚")}; }
+
+/* 수도꼭지 돌리기 — stage 안 (x%,y%)에 손잡이를 놓고, 손잡이를 중심으로 1바퀴 돌리면 onDone (설계 §9-2) */
+function knobTurn(stage,opts,onDone){ opts=opts||{}; const old=stage.querySelector("#knob"); if(old)old.remove();
+  const k=document.createElement("div"); k.id="knob"; k.className="knob hintglow"; k.style.cssText=`left:${opts.x||50}%;top:${opts.y||10}%;`;
+  k.innerHTML=`<div class="knobdisc"></div>${holdHand(0)}`; stage.appendChild(k);
+  let down=false,last=null,total=0,done=false; const disc=k.querySelector(".knobdisc");
+  const ctr=()=>{const r=k.getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height/2};};
+  const finish=()=>{ if(done)return; done=true; k.classList.add("on"); k.classList.remove("hintglow"); SND.pop(); SND.start("water"); onDone&&onDone(); };
+  k.addEventListener("pointerdown",e=>{ e.stopPropagation(); if(done)return; down=true; const c=ctr(); last=Math.atan2(e.clientY-c.y,e.clientX-c.x); try{k.setPointerCapture(e.pointerId);}catch(_){} });
+  k.addEventListener("pointermove",e=>{ if(!down||done)return; e.stopPropagation(); const c=ctr(); const a=Math.atan2(e.clientY-c.y,e.clientX-c.x); let d=a-last; if(d>Math.PI)d-=2*Math.PI; if(d<-Math.PI)d+=2*Math.PI; last=a; total+=d;
+    disc.style.transform=`rotate(${total}rad)`; if(Math.abs(total)>=Math.PI*2) finish(); });
+  const up=e=>{ e.stopPropagation(); down=false; }; k.addEventListener("pointerup",up); k.addEventListener("pointercancel",up);
+  window.__T.skipKnob=finish;   // 테스트·교사용 건너뛰기
+  return k; }
 
 /* ===== 신규 제스처 툴킷 (v19) ===== */
 /* 뜨기 — 숟가락으로 소스통에서 떠서 그릇에 담기(N회). 영역판정은 e.clientX/Y 사용(중요) */
@@ -2254,7 +2275,7 @@ function goPrep(phase){
   washPhase=phase||"before";
   document.getElementById("band").classList.add("hide");
   setHead(phase==="after"?"요리 끝! 손을 씻어요":"요리 전, 손을 씻어요");
-  show("s-prep"); say(phase==="after"?"요리가 끝났어요. 손을 좌우로 열 번 문질러요.":"요리 전에 손을 좌우로 열 번 문질러요.");
+  show("s-prep"); say(phase==="after"?"요리가 끝났어요. 수도꼭지를 돌리고 손을 문질러요.":"요리 전에 수도꼭지를 돌리고 손을 좌우로 문질러요.");
   const sink=document.getElementById("sink"),foam=document.getElementById("foam"),cnt=document.getElementById("washcount"),wi=document.getElementById("washimg");
   const useSep = IMG.basin && IMG.hands;   // 세면대 고정 + 손만 움직임
   let baseT="";
@@ -2270,10 +2291,10 @@ function goPrep(phase){
     sink.style.background=""; if(IMG.washimg)wi.src=IMG.washimg; wi.style.transition="transform .12s";
   }
   const wneed=N(10); foam.style.height="0"; cnt.textContent="0 / "+wneed;
-  let count=0,dir=0,lastX=null,dn=false,ok=false;
+  let count=0,dir=0,lastX=null,dn=false,ok=false,ready=false;
   const amt=useSep?5:2.4, rot=useSep?6:3;
-  sink.onpointerdown=e=>{dn=true;lastX=e.clientX;try{sink.setPointerCapture(e.pointerId);}catch(_){} SND.start("water");
-    if(useSep&&IMG.basinWater) sink.style.backgroundImage="url("+IMG.basinWater+")";};  // 씻기 시작=물 나오는 세면대
+  knobTurn(sink,{x:50,y:6},()=>{ ready=true; if(useSep&&IMG.basinWater) sink.style.backgroundImage="url("+IMG.basinWater+")"; say("물이 나와요. 손을 좌우로 문질러요."); });
+  sink.onpointerdown=e=>{ if(!ready){ say("먼저 수도꼭지를 돌려요."); return; } dn=true;lastX=e.clientX;try{sink.setPointerCapture(e.pointerId);}catch(_){} SND.start("water"); };
   sink.onpointermove=e=>{ if(!dn||ok)return; const dx=e.clientX-lastX;
     if(Math.abs(dx)>6){ const nd=Math.sign(dx);
       wi.style.transform=baseT+" translateX("+(nd*amt)+"vmin) rotate("+(nd*rot)+"deg)"; bubble(sink);  // 손만 좌우로 비비기+거품
