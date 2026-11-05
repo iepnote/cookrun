@@ -77,6 +77,15 @@
   .orderbubble:before{content:"";position:absolute;left:-2.2vmin;top:50%;border:1.2vmin solid transparent;border-right:1.4vmin solid #fffdf8;transform:translateY(-50%);}
   #headcust{position:fixed;top:8.6vmin;left:calc(50% - var(--titleW)/2 - 9vmin);z-index:26;}
   .card .cardemoji{font-size:8vmin;width:100%;height:100%;}
+  /* 요리 도감 */
+  #bookgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:1.6vmin;width:min(96vw,1000px);margin-bottom:6vmin;}
+  .bk{background:rgba(255,253,248,.94);border:.6vmin solid var(--line);border-radius:var(--r);padding:1.2vmin;display:flex;flex-direction:column;align-items:center;gap:.6vmin;position:relative;}
+  .bk .art{width:16vmin;height:16vmin;display:flex;align-items:center;justify-content:center;overflow:hidden;} .bk .art>*{max-width:100%;max-height:100%;}
+  .bk:not(.got) .art{filter:grayscale(1);opacity:.35;}
+  .bk .cnt{position:absolute;top:.6vmin;right:.6vmin;background:var(--hi);color:#6b4e00;font-weight:900;border-radius:1.2vmin;padding:.2vmin .8vmin;font-size:clamp(12px,2.2vmin,22px);}
+  #stamp{position:absolute;right:12%;top:22%;width:18vmin;height:18vmin;border:1vmin solid #d33;border-radius:50%;color:#d33;font-weight:900;font-size:3.2vmin;display:flex;align-items:center;justify-content:center;transform:rotate(-12deg);background:rgba(255,255,255,.5);z-index:5;animation:stampin .45s cubic-bezier(.2,1.4,.4,1);pointer-events:none;}
+  #stamp.first{border-color:#d4a017;color:#b8860b;box-shadow:0 0 2vmin #ffd56b;}
+  @keyframes stampin{from{transform:rotate(-12deg) scale(3);opacity:0}to{transform:rotate(-12deg) scale(1);opacity:1}}
   /* 모달 */
   .modal-back{position:fixed;inset:0;background:rgba(0,0,0,.42);z-index:200;
     display:none;align-items:center;justify-content:center;}
@@ -381,7 +390,14 @@
     <div class="title">요리를 만들어요</div>
     <div id="chefs" style="display:none;"></div>
     <div id="hero-start" style="display:flex;justify-content:center;width:100%;"></div>
-    <button class="big-btn" id="btn-start">시작하기</button>
+    <div style="display:flex;gap:2vmin;flex-wrap:wrap;justify-content:center;position:relative;z-index:2;">
+      <button class="big-btn" id="btn-start">시작하기</button>
+      <button class="big-btn" id="btn-book" style="background:#e8b86d;box-shadow:0 1vmin 0 #c4944a;">📖 도감</button>
+    </div>
+  </section>
+
+  <section class="screen" id="s-book" style="padding-top:20vmin;justify-content:flex-start;overflow-y:auto;">
+    <div id="bookhead" class="sub"></div><div id="bookgrid"></div>
   </section>
 
   <section class="screen" id="s-order">
@@ -681,7 +697,7 @@ try{speechSynthesis.onvoiceschanged=()=>{};}catch(e){}
 /* 화면/안내박스 */
 function show(id){SND.stopAll(); if(id!=="s-select"){const hc=document.getElementById("headcust"); if(hc)hc.style.display="none";} document.querySelectorAll(".screen").forEach(s=>s.classList.toggle("on",s.id===id));}
 function curScreen(){const s=document.querySelector(".screen.on");return s?s.id:"";}
-function fitText(el){ if(!el)return; el.classList.toggle("longtxt",(el.textContent||"").length>14); }
+function fitText(el){ if(!el)return; el.classList.toggle("longtxt",(el.textContent||"").length>11); }
 function setHead(t){const h=document.getElementById("headline"); if(t){h.textContent=t;h.style.display="block";fitText(h);} else h.style.display="none";}
 document.addEventListener("pointerdown",e=>{const b=e.target.closest(".speak");if(b&&b.dataset.say)say(b.dataset.say);});
 
@@ -820,11 +836,12 @@ function buildGive(w){
   const p=PROF.cur(); const useCust=!!(SET.order&&ORDER);
   const who=useCust?ORDER.cust:{id:"me",nm:(p&&p.id!=="anon")?p.name:"나",img:p?p.photo:null,e:"😋"};
   const foodHTML=currentDish&&currentDish.done?currentDish.done():wholeSandwich();
+  if(!useCust){ const g=document.getElementById("g-text"); if(g){ g.textContent="내가 먹어요"; fitText(g); } }
   w.innerHTML=`<div class="cookrow" id="board" style="gap:6vmin;">
     <div class="drag hintglow" id="giveplate" style="position:relative;left:0;top:0;width:var(--sz-vessel);z-index:5;">${IMG.plate?`<img src="${IMG.plate}" style="width:100%;display:block;">`:""}<div id="givefood" style="position:absolute;left:18%;right:18%;top:2%;bottom:22%;display:flex;align-items:center;justify-content:center;transition:transform .3s;cursor:pointer;">${foodHTML}</div></div>
     <div style="position:relative;text-align:center;"><div id="custface">${custFace(who,false)}</div><div class="nm">${who.nm}</div>
       <div id="custspot" class="target-out hintglow" style="position:relative;width:var(--sz-vessel);height:12vmin;border-radius:50%;margin-top:1vmin;"></div></div>
-    <div class="bubblehint" id="givehint" style="top:-6vmin;">${useCust?"🍽️ 접시를 손님 앞에 놓아요":"🍽️ 접시를 내 앞에 놓아요"}</div></div>`;
+    <div class="bubblehint" id="givehint" style="position:fixed;left:50%;bottom:3vmin;top:auto;z-index:20;">${useCust?"🍽️ 접시를 손님 앞에 놓아요":"🍽️ 접시를 내 앞에 놓아요"}</div></div>`;
   const plate=w.querySelector("#giveplate"),spot=w.querySelector("#custspot"),food=w.querySelector("#givefood"),face=w.querySelector("#custface"),hint=w.querySelector("#givehint");
   const bites=N(3); let served=false,cnt=0,done=false;
   plate.addEventListener("pointerdown",e=>{ if(served&&!e.target.closest("#givefood"))e.stopImmediatePropagation(); },true);   // 놓은 뒤엔 접시 끌기 금지
@@ -1994,6 +2011,18 @@ function buildOven(w, opts){ opts=opts||{};
   cookbtn.addEventListener("pointerup",stop);cookbtn.addEventListener("pointercancel",stop);cookbtn.addEventListener("pointerleave",stop);
 }
 
+/* ===== 도감 (설계 §6) — 학생별 도장·별·요리 박사 ===== */
+function bookDishes(){ return DISHES.filter(d=>d.ready); }
+function showBook(){ ac(); const p=PROF.ensure(); setHead(p.name+"의 도감"); document.getElementById("band").classList.add("hide"); show("s-book");
+  const ds=bookDishes(), got=ds.filter(d=>p.stamps[d.id]).length;
+  document.getElementById("bookhead").textContent=`요리 ${got} / ${ds.length} · ⭐ ${p.stars||0}`;
+  document.getElementById("bookgrid").innerHTML=ds.map(d=>{ const n=p.stamps[d.id]||0; const art=d.custom&&d.img?`<img src="${d.img}">`:(d.done?`<div style="width:16vmin;">${d.done()}</div>`:`<div class="cardemoji" style="font-size:12vmin;">${d.e}</div>`);
+    return `<div class="bk ${n?'got':''}"><div class="art">${art}</div><div class="nm">${d.nm}</div>${n?`<div class="cnt">×${n}</div>`:""}</div>`; }).join("");
+  say(`요리 ${got}개를 만들었어요.`);
+  if(got>=ds.length&&!p.master){ p.master=true; PROF.update(p); confetti(document.getElementById("s-book")); SND.clap(); setTimeout(()=>say("와! 요리를 다 만들었어요. "+p.name+" 요리 박사님!"),800);
+    document.getElementById("bookhead").insertAdjacentHTML("beforeend",` 👑 요리 박사`); } }
+document.getElementById("btn-book").onclick=()=>{ SND.pop(); showBook(); };
+
 /* 완성 */
 function finishCooking(){
   document.getElementById("band").classList.add("hide"); setHead(null);
@@ -2005,6 +2034,9 @@ function finishCooking(){
   document.getElementById("hero-done").innerHTML=`<div style="width:var(--sz-vessel);display:flex;justify-content:center;">${art}</div>`;
   SND.clap(); say(dn+"를 완성했어요! 정말 잘했어요.");
   confetti(document.getElementById("s-done"));
+  const st=PROF.addStamp(currentDish?currentDish.id:"sandwich"); const old=document.getElementById("stamp"); if(old)old.remove();   // 도감 도장
+  setTimeout(()=>{ if(curScreen()!=="s-done")return; const s=document.createElement("div"); s.id="stamp"; if(st.first)s.classList.add("first"); s.textContent=st.first?"처음!":"완성 ×"+st.count;
+    document.getElementById("s-done").appendChild(s); SND.stamp(); if(st.first){ SND.twinkle(); setTimeout(()=>say("처음 만든 요리예요!"),900); } },900);
 }
 function confetti(host){const cols=["#ff8a8a","#ffd56b","#8fc98a","#7aa7ff","#d49bff"];
   for(let i=0;i<44;i++){const c=document.createElement("div");c.className="confetti";
@@ -2265,7 +2297,7 @@ document.getElementById("nav-prev").onclick=()=>{
   else if(s==="s-done"){ stepIdx=STEPS.length-1; renderStep(); }
   else if(s==="s-review"){ finishCooking(); }
   else if(s==="s-select"){ if(SET.order&&ORDER)showOrder(true); else { setHead(null); show("s-start"); } }
-  else if(s==="s-order"){ setHead(null); show("s-start"); }
+  else if(s==="s-order"||s==="s-book"){ setHead(null); show("s-start"); }
   else if(s==="s-edit"){ showSelect(); }
 };
 
