@@ -86,6 +86,10 @@
   #stamp{position:absolute;right:12%;top:22%;width:18vmin;height:18vmin;border:1vmin solid #d33;border-radius:50%;color:#d33;font-weight:900;font-size:3.2vmin;display:flex;align-items:center;justify-content:center;transform:rotate(-12deg);background:rgba(255,255,255,.5);z-index:5;animation:stampin .45s cubic-bezier(.2,1.4,.4,1);pointer-events:none;}
   #stamp.first{border-color:#d4a017;color:#b8860b;box-shadow:0 0 2vmin #ffd56b;}
   @keyframes stampin{from{transform:rotate(-12deg) scale(3);opacity:0}to{transform:rotate(-12deg) scale(1);opacity:1}}
+  /* 깜짝 요소 */
+  .steam{position:absolute;width:4vmin;height:4vmin;border-radius:50%;background:rgba(255,255,255,.75);filter:blur(.6vmin);pointer-events:none;z-index:9;transition:transform 1.6s ease-out,opacity 1.6s;}
+  .pantry.gold{border-color:#d4a017;animation:goldglow 1.2s ease-in-out infinite alternate;} @keyframes goldglow{from{box-shadow:0 0 1vmin #ffd56b}to{box-shadow:0 0 3vmin 1vmin #ffd56b}}
+  #cat{position:absolute;left:6%;bottom:24%;z-index:3;transform:translateY(120%);transition:transform .6s ease-out;pointer-events:none;} #cat.up{transform:translateY(0);}
   /* 모달 */
   .modal-back{position:fixed;inset:0;background:rgba(0,0,0,.42);z-index:200;
     display:none;align-items:center;justify-content:center;}
@@ -875,6 +879,17 @@ function juiceColor(){ const ks=(chosen.length?chosen:["strawberry"]).filter(k=>
 function juiceTintDiv(region){ region=region||{l:28,r:28,t:30,b:12}; return `<div class="jtint" style="position:absolute;left:${region.l}%;right:${region.r}%;top:${region.t}%;bottom:${region.b}%;background:${juiceColor()};opacity:.55;mix-blend-mode:multiply;border-radius:12%;pointer-events:none;"></div>`; }
 function juiceTint(imgHTML,region){ return `<div style="position:relative;display:inline-block;">${imgHTML}${juiceTintDiv(region)}</div>`; }
 
+/* ===== 깜짝 (설계 §8) — 김, 과일 말풍선, 황금 재료, 창가 고양이. 놀라게 하는 소리 없음 ===== */
+function steam(host,ms){ if(!host)return; const t0=Date.now(); (function puff(){ if(!host.isConnected||Date.now()-t0>ms)return;
+  for(let i=0;i<3;i++){ const s=document.createElement("div"); s.className="steam"; s.style.left=(35+Math.random()*30)+"%"; s.style.top=(20+Math.random()*10)+"%"; host.appendChild(s);
+    requestAnimationFrame(()=>{ s.style.transform=`translate(${(Math.random()*2-1)*4}vmin,-14vmin) scale(2.2)`; s.style.opacity="0"; }); setTimeout(()=>s.remove(),1700); }
+  setTimeout(puff,500); })(); }
+function goldPick(items,need,free){ if(!(window.__T&&window.__T.forceGold)&&Math.random()>.25)return null; const pool=free?items:items.filter(k=>need.includes(k)); return pool.length?pool[Math.floor(Math.random()*pool.length)]:null; }
+function fruitSpeak(w){ const t=setTimeout(()=>{ if(!w.isConnected||!w.querySelector("#wfr"))return; const b=document.createElement("div"); b.className="bubblehint"; b.style.cssText="top:auto;bottom:62%;left:62%;"; b.textContent="나 씻어줘!"; (w.querySelector(".plate-stage")||w).appendChild(b); setTimeout(()=>b.remove(),2000); },3000);
+  w.addEventListener("pointerdown",()=>clearTimeout(t),{once:true}); }
+function catPeek(){ if(Math.random()>.2||document.getElementById("cat"))return; const c=document.createElement("div"); c.id="cat"; c.innerHTML=IMG.cat?`<img src="${IMG.cat}" style="width:14vmin;display:block;">`:`<div style="font-size:12vmin;line-height:1;">🐱</div>`;
+  document.getElementById("s-select").appendChild(c); requestAnimationFrame(()=>c.classList.add("up")); setTimeout(()=>{c.classList.remove("up"); setTimeout(()=>c.remove(),600);},2000); }
+
 /* 데이터 — 모든 재료 img 키 부여(이미지 없으면 이모지) */
 const PANTRY={
   bread:{nm:"식빵",e:"🍞",img:"breadBot"}, jam:{nm:"잼",e:"🍓",img:"jam"}, ham:{nm:"햄",e:"🍖",img:"ham"},
@@ -1539,6 +1554,7 @@ function buildWashFruit(w, content){
       last=e.clientX; } });
   const up=()=>{down=false; SND.stop("water"); if(!done){st.style.opacity=0; fr.style.transform="";}};   // 손 떼면 물 잠금
   rub.addEventListener("pointerup",up);rub.addEventListener("pointercancel",up);
+  fruitSpeak(w);   // 3초 가만히 있으면 과일이 "나 씻어줘!"
 }
 function buildJuiceWash(w){ buildWashFruit(w); }
 /* 흔들기(공용) — 좌우로 흔들기(방향전환 N회). content=흔들 대상 HTML */
@@ -1749,7 +1765,7 @@ function buildFlip(w, pan, cake, flips){
     </div>`, `⤴️ 위로 휙 ${flips}번 뒤집어요`);
   const act=w.querySelector("#act"),cake_=w.querySelector("#cake"),pov=w.querySelector(".pov"),
         panart=w.querySelector("#panart"),arm=w.querySelector("#arm");
-  const pb=pipbar(w,flips); let down=false,sy=0,st=0,done=false,cnt=0,busy=false; SND.start("sizzle");
+  const pb=pipbar(w,flips); let down=false,sy=0,st=0,done=false,cnt=0,busy=false; SND.start("sizzle"); steam(w.querySelector("#pan"),8000);
   act.addEventListener("pointerdown",e=>{down=true;sy=e.clientY;st=Date.now();try{act.setPointerCapture(e.pointerId);}catch(_){}});
   const up=e=>{ if(!down||done||busy)return; down=false; const dy=sy-e.clientY, dt=Date.now()-st;
     if(dy>50 && dt<600){ busy=true; cnt++; SND.pop(); pb.tick(cnt); sparkle(pov); vib(25);
@@ -1906,7 +1922,7 @@ function buildBake(w, opts){ opts=opts||{};
   </div>`;
   const stage=w.querySelector("#stage"),food=w.querySelector("#food"),heat=w.querySelector("#heat"),btn=w.querySelector("#bakebtn");
   let p=0,done=false,timer=null,mark=0;
-  function tick(){ if(done)return; p+=3/LV().k; heat.style.height=Math.min(56,p*0.56)+"%";
+  function tick(){ if(done)return; if(p===0)steam(stage,6000); p+=3/LV().k; heat.style.height=Math.min(56,p*0.56)+"%";
     food.style.filter="brightness("+(1-p*0.0032)+") saturate("+(1+p*0.006)+")"; beep(200+p*3,.04,"sawtooth",.07);
     const m=Math.floor(p/25); if(m>mark){mark=m;sparkle(stage);}
     if(p>=100){done=true;clearInterval(timer);timer=null;heat.style.height="0";food.style.filter="";
@@ -2032,7 +2048,7 @@ function buildOven(w, opts){ opts=opts||{};
       setTimeout(()=>{cookbtn.style.display="block";},400); } }
   btnMin.addEventListener("pointerdown",e=>{e.preventDefault();timeSet("min");});
   btnSec.addEventListener("pointerdown",e=>{e.preventDefault();timeSet("sec");});
-  function tick(){ if(done)return; p+=3/LV().k; glow.style.opacity=Math.min(.9,p/100);
+  function tick(){ if(done)return; if(p===0)steam(stage,6000); p+=3/LV().k; glow.style.opacity=Math.min(.9,p/100);
     doorwin.style.background=`rgba(255,${170-p},40,${.25+p*0.004})`; beep(180+p*3,.04,"sawtooth",.06);
     if(p>=100){ done=true; clearInterval(timer); timer=null; cookbtn.style.display="none"; tdisp.textContent="0:00";
       SND.stop("sizzle"); SND.ding(); vib([60,40,60]);
@@ -2067,6 +2083,7 @@ function finishCooking(){
   document.getElementById("hero-done").innerHTML=`<div style="width:var(--sz-vessel);display:flex;justify-content:center;">${art}</div>`;
   SND.clap(); say(josa(dn,"을","를")+" 완성했어요! 정말 잘했어요.");
   confetti(document.getElementById("s-done"));
+  if(currentDish&&/^(pancake|pizza|cupcake)$/.test(currentDish.id)) steam(document.getElementById("hero-done"),3000);   // 갓 구운 김
   const st=PROF.addStamp(currentDish?currentDish.id:"sandwich"); const old=document.getElementById("stamp"); if(old)old.remove();   // 도감 도장
   setTimeout(()=>{ if(curScreen()!=="s-done")return; const s=document.createElement("div"); s.id="stamp"; if(st.first)s.classList.add("first"); s.textContent=st.first?"처음!":"완성 ×"+st.count;
     document.getElementById("s-done").appendChild(s); SND.stamp(); if(st.first){ SND.twinkle(); setTimeout(()=>say("처음 만든 요리예요!"),900); } },900);
@@ -2149,6 +2166,7 @@ function showSelect(){ ac(); chosen=[];stepIdx=0;
   modeBtn.onclick=()=>{ EDITMODE=!EDITMODE; SND.pop(); say(EDITMODE?"편집 모드예요. 고칠 요리를 눌러요.":"편집 모드를 껐어요."); showSelect(); };
   g.appendChild(modeBtn);
   say(ORDER&&SET.order?josa(ORDER.dish.nm,"을","를")+" 골라요.":"무엇을 만들까요? 요리를 골라요.");
+  catPeek();
 }
 
 /* 장바구니 */
@@ -2184,13 +2202,15 @@ function buildCart(dish){
   function finish(){ chosen=(currentDish&&currentDish.custom)?collected.slice():collected.filter(k=>ING[k]||FRUITS[k]); SND.clap();   // 커스텀 요리는 고른 재료 전부 사용
     document.getElementById("cookpop").classList.add("on"); say("다 골랐어요! 요리 시작 단추를 눌러요."); }
   function select(k,el,p){ got.add(k);collected.push(k);el.classList.add("sel");SND.pop();say(p.nm);   // 카드가 튀어나옴
+    if(k===gold&&el.classList.contains("gold")){ el.classList.remove("gold"); SND.twinkle(); PROF.addStar(); setTimeout(()=>say("황금 "+p.nm+"예요! 별을 받았어요."),400); }
     if(free){ cd.disabled=false; cd.style.opacity=1; cd.classList.add("hintglow");
       if(collected.length===1) say("한 개만 골라도 돼요. 다 골랐으면 다 담았어요 단추를 눌러요."); }
     else if(got.size===need.length){ setTimeout(finish,400); } }
   function deselect(k,el){ got.delete(k); const i=collected.indexOf(k); if(i>-1)collected.splice(i,1); el.classList.remove("sel");
     if(free&&!collected.length){ cd.disabled=true;cd.style.opacity=.4;cd.classList.remove("hintglow"); } }
   function reject(el){ el.classList.remove("shake");void el.offsetWidth;el.classList.add("shake");beep(200,.12,"sine",.18);say("이건 필요 없어요."); }
-  items.forEach(k=>{const p=PANTRY[k];const el=document.createElement("div");el.className="pantry";
+  const gold=goldPick(items,need,free);   // 25% 확률 황금 재료(별 하나)
+  items.forEach(k=>{const p=PANTRY[k];const el=document.createElement("div");el.className="pantry"+(k===gold?" gold":"");
     el.innerHTML=ingIcon(k)+`<div class="pn">${p.nm}</div>`;
     el.onclick=()=>{ if(got.has(k)){ deselect(k,el); return; }
       if(free||need.includes(k)) select(k,el,p); else reject(el); };
