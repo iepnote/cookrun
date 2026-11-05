@@ -73,7 +73,7 @@
     display:none;align-items:center;justify-content:center;}
   .modal-back.on{display:flex;}
   .modal{background:var(--panel);border-radius:var(--r);padding:clamp(16px,3vmin,40px);
-    width:min(86vw,560px);display:flex;flex-direction:column;gap:2vmin;box-shadow:0 2vmin 6vmin rgba(0,0,0,.3);}
+    width:min(86vw,560px);max-height:90vh;overflow-y:auto;display:flex;flex-direction:column;gap:2vmin;box-shadow:0 2vmin 6vmin rgba(0,0,0,.3);}
   .modal.pop{align-items:center;gap:3vmin;animation:popin .3s;}
   @keyframes popin{from{transform:scale(.6);opacity:0}to{transform:scale(1);opacity:1}}
   .m-title{font-size:clamp(24px,4.4vmin,52px);font-weight:900;text-align:center;}
@@ -438,8 +438,14 @@
       <button data-v="0">음소거</button><button data-v="0.4">작게</button><button data-v="0.8">보통</button><button data-v="1">크게</button></div></div>
     <div class="m-row"><span>🗣️ 목소리</span><div class="seg" id="set-voice">
       <button data-v="female">여성</button><button data-v="male">남성</button></div></div>
+    <div class="m-row"><span>🎵 효과음</span><div class="seg" id="set-sfx"><button data-v="1">켬</button><button data-v="0">끔</button></div></div>
+    <div class="m-row"><span>🗣️ 음성 안내</span><div class="seg" id="set-tts"><button data-v="1">켬</button><button data-v="0">끔</button></div></div>
+    <div class="m-row"><span>📳 진동</span><div class="seg" id="set-vib"><button data-v="1">켬</button><button data-v="0">끔</button></div></div>
     <div class="m-row"><span>🔠 글씨 크기</span><div class="seg" id="set-fs">
       <button data-v="0.85">작게</button><button data-v="1">보통</button><button data-v="1.25">크게</button></div></div>
+    <div class="m-row"><span>🧑‍🍳 손님 주문</span><div class="seg" id="set-order"><button data-v="1">켬</button><button data-v="0">끔</button></div></div>
+    <div id="set-students"></div>
+    <div id="set-customers"></div>
     <button class="big-btn" id="set-close">닫기</button>
   </div>
 </div>
@@ -559,7 +565,12 @@ var IMG = {
 </script>
 <script>
 "use strict";
-const SET={vol:0.8, voice:"female", fs:1};
+const SET={vol:0.8, voice:"female", fs:1, sfx:true, tts:true, vib:true, order:true};
+function settingsSave(){ try{localStorage.setItem("cookrun_set",JSON.stringify(SET));}catch(_){ } }
+function settingsLoad(){ try{Object.assign(SET,JSON.parse(localStorage.getItem("cookrun_set")||"{}"));}catch(_){ }
+  document.documentElement.style.setProperty("--fsx",SET.fs); }
+settingsLoad();
+function vib(p){ if(!SET.vib)return; try{navigator.vibrate(p);}catch(_){ } }
 
 /* 손가락 커서 */
 (function(){ const cur=document.getElementById("cursor"); cur.src=IMG.cursor||"";
@@ -573,7 +584,7 @@ const SET={vol:0.8, voice:"female", fs:1};
 /* 사운드 */
 let AC=null; function ac(){return AC||(AC=new (window.AudioContext||window.webkitAudioContext)());}
 function beep(f=660,dur=.16,type="sine",vol=.25,delay=0){
-  if(SET.vol<=0) return;
+  if(SET.vol<=0||!SET.sfx) return;
   try{const c=ac();const o=c.createOscillator(),g=c.createGain();
   o.type=type;o.frequency.value=f;o.connect(g);g.connect(c.destination);
   const v=vol*SET.vol; const t=c.currentTime+delay;
@@ -583,9 +594,9 @@ function beep(f=660,dur=.16,type="sine",vol=.25,delay=0){
 const SND={
   good(){beep(523,.12,"sine",.22);beep(784,.18,"sine",.22,.1);},
   pop(){beep(380,.08,"triangle",.2);},
-  cut(){beep(220,.05,"sawtooth",.18);beep(180,.06,"sawtooth",.18,.05);try{navigator.vibrate(30);}catch(_){}},
+  cut(){beep(220,.05,"sawtooth",.18);beep(180,.06,"sawtooth",.18,.05);vib(30);},
   clap(){[523,659,784,1046].forEach((f,i)=>beep(f,.15,"sine",.2,i*.1));},
-  squirt(){beep(1500,.05,"square",.16);beep(760,.11,"square",.13,.04);try{navigator.vibrate(20);}catch(_){}},  // 케첩 찍-
+  squirt(){beep(1500,.05,"square",.16);beep(760,.11,"square",.13,.04);vib(20);},  // 케첩 찍-
   ding(){beep(1318,.5,"sine",.28);beep(1976,.7,"sine",.18,.06);}                                              // 오븐 띵-
 };
 
@@ -602,7 +613,7 @@ function pickVoice(){
   const score=v=>(natural(v)?4:0)+(want.test(v.name)?2:0)+(/ko[-_]?KR/i.test(v.lang)?1:0);
   return vs.slice().sort((a,b)=>score(b)-score(a))[0];
 }
-function say(t){ lastSay=t; if(SET.vol<=0)return; try{ speechSynthesis.cancel();
+function say(t){ lastSay=t; if(SET.vol<=0||!SET.tts)return; try{ speechSynthesis.cancel();
   const u=new SpeechSynthesisUtterance(t); u.lang="ko-KR"; u.rate=.97;
   u.pitch = SET.voice==="male"?0.9:1.0; u.volume=Math.min(1,SET.vol+0.1);
   const v=pickVoice(); if(v)u.voice=v;
@@ -1385,7 +1396,7 @@ function buildJuiceBlend(w){
   </div>`;
   const stage=w.querySelector("#stage"),wrap=w.querySelector("#mxwrap"),mx=w.querySelector("#mx"),btn=w.querySelector("#mxbtn");
   const pb=pipbar(w,taps); let cnt=0,done=false;
-  btn.addEventListener("pointerdown",e=>{ e.preventDefault(); if(done)return; cnt++; SND.pop(); try{navigator.vibrate(20);}catch(_){}
+  btn.addEventListener("pointerdown",e=>{ e.preventDefault(); if(done)return; cnt++; SND.pop(); vib(20);
     beep(240+cnt*30,.09,"sawtooth",.14); pb.tick(cnt); sparkle(stage);
     btn.style.transform="translateX(-50%) scale(.82)"; setTimeout(()=>btn.style.transform="translateX(-50%)",100);   // 단추 눌림
     wrap.style.transform="rotate("+(cnt%2?5:-5)+"deg)"; setTimeout(()=>{ if(!done)wrap.style.transform=""; },110);   // 믹서기 드르륵
@@ -1519,7 +1530,7 @@ function buildFlip(w, pan, cake, flips){
   const pb=pipbar(w,flips); let down=false,sy=0,st=0,done=false,cnt=0,busy=false;
   act.addEventListener("pointerdown",e=>{down=true;sy=e.clientY;st=Date.now();try{act.setPointerCapture(e.pointerId);}catch(_){}});
   const up=e=>{ if(!down||done||busy)return; down=false; const dy=sy-e.clientY, dt=Date.now()-st;
-    if(dy>50 && dt<600){ busy=true; cnt++; SND.pop(); pb.tick(cnt); sparkle(pov); try{navigator.vibrate(25);}catch(_){}
+    if(dy>50 && dt<600){ busy=true; cnt++; SND.pop(); pb.tick(cnt); sparkle(pov); vib(25);
       cake_.style.transform="translateY(-24vmin) rotateX(720deg)";
       panart.style.transform="translateY(2.6vmin)"; arm.style.transform="translateX(-50%) translateY(2.6vmin)";   // 팬 잡은 손이 아래로 눌리는 반동
       setTimeout(()=>{panart.style.transform="";arm.style.transform="translateX(-50%)";},220);
@@ -1627,7 +1638,7 @@ function buildSqueeze(w, opts){ opts=opts||{};
   const moveBottle=e=>{const r=act.getBoundingClientRect();bottle.style.left=Math.max(14,Math.min(86,(e.clientX-r.left)/r.width*100))+"%";};
   // 누를 때마다 병 위치에서 한 번씩 짜짐(탭 방식 — 내리긋기보다 조작이 쉬움). 끌어서 위치를 옮기고 또 누르기
   act.addEventListener("pointerdown",e=>{ if(done)return; down=true; moveBottle(e); try{act.setPointerCapture(e.pointerId);}catch(_){}
-    cnt++; SND.squirt(); try{navigator.vibrate(20);}catch(_){}
+    cnt++; SND.squirt(); vib(20);
     const r=act.getBoundingClientRect(); const nx=Math.max(14,Math.min(86,(e.clientX-r.left)/r.width*100)), ny=26+((cnt-1)%3)*9;
     svg.insertAdjacentHTML("beforeend",`<line x1="${px}" y1="${py}" x2="${nx}" y2="${ny}" stroke="${color}" stroke-width="5" stroke-linecap="round"/><circle cx="${nx}" cy="${ny}" r="3.4" fill="${color}"/>`);
     px=nx;py=ny; sparkle(stage); pb.tick(cnt);
@@ -1650,7 +1661,7 @@ function buildKnead(w, opts){ opts=opts||{};
   </div>`;
   const stage=w.querySelector("#stage"),lump=w.querySelector("#lump"),act=w.querySelector("#act"),kh=w.querySelector("#kh");
   const pb=pipbar(w,taps); let cnt=0,done=false;
-  act.addEventListener("pointerdown",e=>{ if(done)return; cnt++; SND.pop(); try{navigator.vibrate(18);}catch(_){}
+  act.addEventListener("pointerdown",e=>{ if(done)return; cnt++; SND.pop(); vib(18);
     lump.classList.remove("squish"); void lump.offsetWidth; lump.classList.add("squish"); sparkle(stage); pb.tick(cnt);
     kh.style.transform="translateX(-50%) translateY(4vmin)"; setTimeout(()=>kh.style.transform="translateX(-50%)",130);   // 손이 꾹 누름
     if(cnt>=taps&&!done){ done=true; lump.innerHTML=art(opts.toImg,opts.toEmoji||"🍙"); SND.good(); setTimeout(succeed,500); } });
@@ -1669,7 +1680,7 @@ function buildBake(w, opts){ opts=opts||{};
     food.style.filter="brightness("+(1-p*0.0032)+") saturate("+(1+p*0.006)+")"; beep(200+p*3,.04,"sawtooth",.07);
     const m=Math.floor(p/25); if(m>mark){mark=m;sparkle(stage);}
     if(p>=100){done=true;clearInterval(timer);timer=null;heat.style.height="0";food.style.filter="";
-      food.innerHTML=art(opts.toImg,opts.toEmoji||opts.fromEmoji||"🍞");SND.good();try{navigator.vibrate(40);}catch(_){}setTimeout(succeed,400);} }
+      food.innerHTML=art(opts.toImg,opts.toEmoji||opts.fromEmoji||"🍞");SND.good();vib(40);setTimeout(succeed,400);} }
   const start=()=>{ if(done||timer)return; timer=setInterval(tick,80); };
   const stop=()=>{ if(timer){clearInterval(timer);timer=null;} };
   btn.addEventListener("pointerdown",e=>{e.preventDefault();start();});
@@ -1794,7 +1805,7 @@ function buildOven(w, opts){ opts=opts||{};
   function tick(){ if(done)return; p+=3; glow.style.opacity=Math.min(.9,p/100);
     doorwin.style.background=`rgba(255,${170-p},40,${.25+p*0.004})`; beep(180+p*3,.04,"sawtooth",.06);
     if(p>=100){ done=true; clearInterval(timer); timer=null; cookbtn.style.display="none"; tdisp.textContent="0:00";
-      SND.ding(); try{navigator.vibrate([60,40,60]);}catch(_){}
+      SND.ding(); vib([60,40,60]);
       setTimeout(()=>{ door.style.transform="rotateX(78deg)"; glow.style.opacity=0; doorwin.style.background="rgba(170,205,235,.3)";
         if(opts.doneImg&&IMG[opts.doneImg]) inFood.innerHTML=`<img class="land" src="${IMG[opts.doneImg]}" style="width:100%;display:block;">`;
         sparkle(stage); setHint("🎉 완성!"); setTimeout(succeed,700); },500); } }
@@ -2022,13 +2033,18 @@ function showRecipe(dish){
 
 /* 설정 */
 function buildSettings(){
+  const isBool=k=>/^(sfx|tts|vib|order)$/.test(k);
   function wire(id,key,after){ const seg=document.getElementById(id);
-    [...seg.children].forEach(b=>{ b.classList.toggle("on", String(SET[key])===b.dataset.v);
-      b.onclick=()=>{ SET[key]=(key==='vol'||key==='fs')?parseFloat(b.dataset.v):b.dataset.v;
-        [...seg.children].forEach(x=>x.classList.remove("on")); b.classList.add("on"); after&&after(); }; }); }
+    [...seg.children].forEach(b=>{ b.classList.toggle("on", (isBool(key)?String(+SET[key]):String(SET[key]))===b.dataset.v);
+      b.onclick=()=>{ SET[key]=(key==='vol'||key==='fs')?parseFloat(b.dataset.v):(isBool(key)?b.dataset.v==="1":b.dataset.v);
+        [...seg.children].forEach(x=>x.classList.remove("on")); b.classList.add("on"); settingsSave(); after&&after(); }; }); }
   wire("set-vol","vol",()=>SND.pop());
+  wire("set-sfx","sfx",()=>SND.pop());
+  wire("set-tts","tts",()=>say("음성 안내를 켰어요."));
+  wire("set-vib","vib",()=>vib(40));
   wire("set-voice","voice",()=>say(SET.voice==="male"?"남자 목소리예요.":"여자 목소리예요."));
   wire("set-fs","fs",()=>document.documentElement.style.setProperty("--fsx",SET.fs));
+  wire("set-order","order",()=>say(SET.order?"손님 주문을 켰어요.":"손님 주문을 껐어요."));
 }
 document.getElementById("nav-set").onclick=()=>{ buildSettings(); document.getElementById("settings").classList.add("on"); };
 document.getElementById("set-close").onclick=()=>document.getElementById("settings").classList.remove("on");
