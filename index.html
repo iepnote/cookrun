@@ -96,6 +96,7 @@
   .knobdisc:after{content:"";position:absolute;left:46%;top:8%;width:8%;height:40%;background:#3a4653;border-radius:1vmin;}
   .knob>[data-hand]{position:absolute;left:50%;top:60%;transform:translate(-50%,0);opacity:.9;pointer-events:none;}
   .knob.on .knobdisc{background:radial-gradient(circle at 40% 35%,#bfe3ff,#4b9ad8);}
+  .stain{position:absolute;width:14%;height:12%;border-radius:50%;background:rgba(120,80,40,.45);transition:opacity .3s;}
   /* 모달 */
   .modal-back{position:fixed;inset:0;background:rgba(0,0,0,.42);z-index:200;
     display:none;align-items:center;justify-content:center;}
@@ -1304,7 +1305,7 @@ function succeed(){ if(curScreen()==="s-edit"){ SND.good(); toast("좋아요!");
   const wait=Math.max(1200, COOK_MIN_MS-(Date.now()-cookT0)); setTimeout(nextStep,wait); }
 function renderStep(){
   if(LV().choose&&stepIdx>0&&!CHOSEN_OK[stepIdx]&&curScreen()!=="s-edit"){ renderChoose(); return; }   // '다' 수준: 다음 단계 고르기
-  show("s-step"); setHead(null); band(); applyHint(); ghostClear();
+  washPhase="before"; show("s-step"); setHead(null); band(); applyHint(); ghostClear();
   cookT0=Date.now(); SND.stopAll();   // 단계 시작 시각(최소 3초 보장용)
   const s=STEPS[stepIdx];
   document.getElementById("g-text").textContent=s.text; fitText(document.getElementById("g-text"));
@@ -1855,7 +1856,7 @@ function buildCrackEgg(w){
 function EGG_STEP(){ return {id:0,label:"달걀 깨기",text:"달걀을 깨요",say:"달걀을 그릇에 톡톡 치고 아래로 끌어 깨요",praise:"잘했어요",build:buildCrackEgg,card:pcard(["egg"],"🥚")}; }
 
 /* 수도꼭지 돌리기 — stage 안 (x%,y%)에 손잡이를 놓고, 손잡이를 중심으로 1바퀴 돌리면 onDone (설계 §9-2) */
-function knobTurn(stage,opts,onDone){ opts=opts||{}; const old=stage.querySelector("#knob"); if(old)old.remove();
+function knobTurn(stage,opts,onDone){ opts=opts||{}; document.querySelectorAll("#knob").forEach(k=>k.remove());   // 다른 화면에 남은 손잡이 제거
   const k=document.createElement("div"); k.id="knob"; k.className="knob hintglow"; k.style.cssText=`left:${opts.x||50}%;top:${opts.y||10}%;`;
   k.innerHTML=`<div class="knobdisc"></div>${holdHand(0)}`; stage.appendChild(k);
   let down=false,last=null,total=0,done=false; const disc=k.querySelector(".knobdisc");
@@ -1867,6 +1868,29 @@ function knobTurn(stage,opts,onDone){ opts=opts||{}; const old=stage.querySelect
   const up=e=>{ e.stopPropagation(); down=false; }; k.addEventListener("pointerup",up); k.addEventListener("pointercancel",up);
   window.__T.skipKnob=finish;   // 테스트·교사용 건너뛰기
   return k; }
+
+/* 설거지 — 요리 뒤 손 씻기 대체(설계 §9-3). 손잡이 돌리기 → 수세미로 좌우 N회 → 얼룩이 사라지고 반짝 → finishCooking() */
+function buildDishwash(w){
+  const basin=IMG.basin?`<img id="dwbasin" src="${IMG.basin}" style="width:100%;display:block;">`:`<div style="width:100%;height:40vmin;background:#dceef7;border-radius:4vmin;"></div>`;
+  const plate=IMG.plate?`<img src="${IMG.plate}" style="width:100%;display:block;">`:`<div class="cardemoji" style="font-size:20vmin;">🍽️</div>`;
+  const sponge=IMG.sponge?`<img src="${IMG.sponge}" style="width:100%;display:block;">`:`<div style="width:9vmin;height:6vmin;background:#ffd84d;border:.4vmin solid #c9a227;border-radius:1.2vmin;position:relative;"><div style="position:absolute;left:0;right:0;top:0;height:35%;background:#5fbf6a;border-radius:1vmin 1vmin 0 0;"></div></div>`;
+  w.innerHTML=sceneDevice(`<div style="position:relative;width:calc(var(--sz-vessel)*1.3);margin:0 auto;">${basin}
+      <div id="dishwash" style="position:absolute;left:25%;width:50%;top:46%;cursor:grab;touch-action:none;">${plate}
+        <div id="stains" style="position:absolute;inset:18% 20%;pointer-events:none;">${[[20,30],[60,25],[35,60],[70,62]].map(p=>`<div class="stain" style="left:${p[0]}%;top:${p[1]}%;"></div>`).join("")}</div>
+        <div id="dwfoam" style="position:absolute;inset:0;opacity:0;transition:opacity .3s;pointer-events:none;background:repeating-radial-gradient(circle at 30% 40%,rgba(255,255,255,.95) 0 6%,rgba(234,244,251,.6) 6% 12%);border-radius:50%;"></div>
+        <div id="spongeel" style="position:absolute;left:50%;top:30%;width:calc(var(--sz-tool)*.5);transform:translate(-50%,-50%);z-index:4;pointer-events:none;transition:left .06s;">${sponge}${holdHand(0)}</div>
+      </div></div>`);
+  w.insertAdjacentHTML("beforeend",`<div class="bubblehint" style="position:fixed;left:50%;bottom:3vmin;top:auto;z-index:20;">🧽 수도꼭지를 돌리고 접시를 문질러요</div>`);
+  const stage=w.querySelector("#stage"),dish=w.querySelector("#dishwash"),foam=w.querySelector("#dwfoam"),sp=w.querySelector("#spongeel"),stains=[...w.querySelectorAll(".stain")];
+  const need=N(10), pb=pipbar(w,need); let ready=false,down=false,last=null,dir=0,cnt=0,done=false;
+  knobTurn(stage,{x:50,y:8},()=>{ ready=true; const b=w.querySelector("#dwbasin"); if(b&&IMG.basinWater)b.src=IMG.basinWater; say("물이 나와요. 접시를 좌우로 문질러요."); });
+  dish.addEventListener("pointerdown",e=>{ if(!ready){say("먼저 수도꼭지를 돌려요.");return;} down=true; last=e.clientX; try{dish.setPointerCapture(e.pointerId);}catch(_){} });
+  dish.addEventListener("pointermove",e=>{ if(!down||done)return; const r=dish.getBoundingClientRect(); sp.style.left=Math.max(10,Math.min(90,(e.clientX-r.left)/r.width*100))+"%";
+    const dx=e.clientX-last; if(Math.abs(dx)>12){ const nd=Math.sign(dx); if(nd!==dir){ dir=nd; cnt++; SND.pop(); bubble(stage); pb.tick(cnt); foam.style.opacity=Math.min(.9,cnt/need);
+      const si=Math.floor(cnt/need*stains.length); stains.forEach((s,i)=>s.style.opacity=i<si?0:1);
+      if(cnt>=need){ done=true; stains.forEach(s=>s.style.opacity=0); foam.style.opacity=0; sparkle(stage); SND.good(); SND.stop("water"); say("접시가 깨끗해요! 다 했어요."); setTimeout(finishCooking,900); } } last=e.clientX; } });
+  const up=()=>down=false; dish.addEventListener("pointerup",up); dish.addEventListener("pointercancel",up);
+}
 
 /* ===== 신규 제스처 툴킷 (v19) ===== */
 /* 뜨기 — 숟가락으로 소스통에서 떠서 그릇에 담기(N회). 영역판정은 e.clientX/Y 사용(중요) */
@@ -2126,7 +2150,7 @@ document.getElementById("btn-book").onclick=()=>{ SND.pop(); showBook(); };
 
 /* 완성 */
 function finishCooking(){
-  document.getElementById("band").classList.add("hide"); setHead(null);
+  washPhase="before"; document.getElementById("band").classList.add("hide"); setHead(null);
   show("s-done");
   const dn=currentDish?currentDish.nm:"샌드위치";
   const who=(PROF.cur()&&PROF.cur().id!=="anon")?PROF.cur().name+" 요리사님, ":"";
@@ -2273,6 +2297,11 @@ function buildCart(dish){
 /* 손 씻기 — 좌우 10회, 세면대 고정 */
 function goPrep(phase){
   washPhase=phase||"before";
+  if(phase==="after"){   // 요리 뒤에는 설거지(설계 §9-3)
+    stepIdx=STEPS.length; document.getElementById("band").classList.add("hide"); setHead("요리 끝! 설거지를 해요"); show("s-step"); ghostClear(); applyHint();
+    const g=document.getElementById("g-text"); g.textContent="접시를 씻어요"; fitText(g); document.getElementById("g-say").onclick=()=>say("접시를 깨끗이 씻어요.");
+    say("요리가 끝났어요. 접시를 깨끗이 씻어요.");
+    const w=document.getElementById("work"); w.innerHTML=""; w.style.transform=""; buildDishwash(w); ghost(w,"lr"); return; }
   document.getElementById("band").classList.add("hide");
   setHead(phase==="after"?"요리 끝! 손을 씻어요":"요리 전, 손을 씻어요");
   show("s-prep"); say(phase==="after"?"요리가 끝났어요. 수도꼭지를 돌리고 손을 문질러요.":"요리 전에 수도꼭지를 돌리고 손을 좌우로 문질러요.");
@@ -2383,7 +2412,7 @@ document.getElementById("nav-again").onclick=()=>{
 document.getElementById("nav-next").onclick=()=>{
   const pop=document.getElementById("cookpop"); if(pop.classList.contains("on")){ document.getElementById("pop-cook").click(); return; }
   const s=curScreen();
-  if(s==="s-step"){ if(stepIdx<STEPS.length-1){stepIdx++;renderStep();} else goPrep("after"); }
+  if(s==="s-step"){ if(washPhase==="after"){ finishCooking(); } else if(stepIdx<STEPS.length-1){stepIdx++;renderStep();} else goPrep("after"); }
   else if(s==="s-start"){ document.getElementById("btn-start").click(); }
   else if(s==="s-order"){ document.getElementById("order-ok").click(); }
   else if(s==="s-select"){ SND.pop(); say("먼저 요리를 골라요."); }
@@ -2395,7 +2424,7 @@ document.getElementById("nav-next").onclick=()=>{
 };
 document.getElementById("nav-prev").onclick=()=>{
   const s=curScreen();
-  if(s==="s-step"){ if(stepIdx>0){stepIdx--;renderStep();} else openCart(currentDish); }
+  if(s==="s-step"){ if(washPhase==="after"){ washPhase="before"; stepIdx=STEPS.length-1; renderStep(); } else if(stepIdx>0){stepIdx--;renderStep();} else openCart(currentDish); }
   else if(s==="s-cart"){ currentDish?showRecipe(currentDish):showSelect(); }
   else if(s==="s-intro"){ showSelect(); }
   else if(s==="s-prep"){ openCart(currentDish); }
